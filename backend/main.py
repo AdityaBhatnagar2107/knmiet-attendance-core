@@ -41,16 +41,15 @@ current_qr_string = ""
 # --- STUDENT LOGIC ---
 
 @app.post("/register-student")
-async def register(data: dict = Body(...), db: Session = Depends(database.get_db)):
+async def register(roll_no: str, name: str, device_id: str, db: Session = Depends(database.get_db)):
     # Enforces the 13-digit integrity check for KNMIET Roll Numbers
-    roll = str(data.get('roll_no', ''))
-    if len(roll) != 13:
+    if len(roll_no) != 13:
         raise HTTPException(status_code=400, detail="Roll number must be exactly 13 digits")
     
     new_student = models.Student(
-        name=data.get('name'),
-        roll_no=roll,
-        registered_device=data.get('device_id'),
+        name=name,
+        roll_no=roll_no,
+        registered_device=device_id,
         is_approved=False,
         total_lectures=0
     )

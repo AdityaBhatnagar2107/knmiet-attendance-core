@@ -7,6 +7,11 @@ from datetime import datetime
 import random, string
 import os
 
+from fastapi.staticfiles import StaticFiles
+import os
+
+# This tells FastAPI to serve everything in the "frontend" folder
+app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
 # Initialize database tables
 models.Base.metadata.create_all(bind=engine)
 

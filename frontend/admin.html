@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Master Admin | KNMIET Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: #020617;
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo-container {
+            background: white;
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.2);
+        }
+    </style>
+</head>
+
+<body class="p-6">
+    <div id="loginGate"
+        class="max-w-md mx-auto mt-16 p-10 glass rounded-[2.5rem] text-center border-t-4 border-t-blue-600">
+        <div class="logo-container p-4 rounded-2xl mb-8 inline-block">
+            <img src="knmiet-logo1494x375.webp" alt="KNMIET" class="h-14">
+        </div>
+        <h2 class="text-2xl font-bold text-blue-400 mb-1">Admin Access</h2>
+        <p class="text-[10px] text-slate-500 mb-6 uppercase tracking-widest font-bold">Secure Institution Terminal</p>
+
+        <input type="password" id="adminPass" placeholder="Enter Secure Key"
+            class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl mb-4 outline-none text-center focus:border-blue-500">
+        <button onclick="verify()"
+            class="w-full bg-blue-600 py-4 rounded-xl font-bold hover:bg-blue-500 transition-all shadow-lg">
+            UNLOCK DASHBOARD
+        </button>
+    </div>
+
+    <div id="dashboard" class="max-w-6xl mx-auto hidden">
+        <div class="flex justify-between items-center mb-10">
+            <div class="flex items-center gap-6">
+                <div class="bg-white p-2 rounded-lg"><img src="knmiet-logo1494x375.webp" class="h-8"></div>
+                <h1 class="text-2xl font-black text-white">Control Center</h1>
+            </div>
+            <button onclick="location.reload()"
+                class="text-xs bg-red-900/20 px-4 py-2 rounded-xl text-red-400 border border-red-900/50">LOGOUT</button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div class="glass p-8 rounded-3xl border-l-4 border-l-blue-600">
+                <h3 class="text-xs font-bold text-slate-500 uppercase mb-6 tracking-widest">Student Approval Queue</h3>
+                <div id="pendingList" class="space-y-4"></div>
+            </div>
+
+            <div class="glass p-8 rounded-3xl border-l-4 border-l-emerald-600">
+                <h3 class="text-xs font-bold text-slate-500 uppercase mb-6 tracking-widest">Faculty Directory</h3>
+                <div id="teacherList" class="space-y-4 mb-6"></div>
+                <div class="p-6 bg-slate-950/40 rounded-2xl border border-slate-800 space-y-3 shadow-inner">
+                    <p class="text-[10px] font-bold text-emerald-500 uppercase mb-2 ml-1">Register New Faculty</p>
+                    <input type="text" id="tName" placeholder="Full Name"
+                        class="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-sm outline-none">
+                    <input type="text" id="tSub" placeholder="Subject"
+                        class="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-sm outline-none">
+                    <input type="text" id="tPin" placeholder="Set 4-Digit PIN"
+                        class="w-full bg-slate-900 border border-slate-800 p-3 rounded-xl text-sm text-emerald-400 font-bold outline-none">
+                    <button onclick="addTeacher()"
+                        class="w-full bg-emerald-600 py-3 rounded-xl font-bold hover:bg-emerald-500 transition-all">
+                        REGISTER FACULTY
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentKey = "";
+        const API = "http://127.0.0.1:8000";
+
+
+        async function verify() {
+            // trim() ensures no accidental spaces fail the login
+            currentKey = document.getElementById('adminPass').value.trim();
+
+            if (currentKey !== "KNM@2026!Admin") {
+                return alert("Access Denied: Invalid Administrative Key");
+            }
+            loadData();
+        }
+
+        async function loadData() {
+            try {
+                const sRes = await fetch(`${API}/pending-students?admin_key=${currentKey}&t=${Date.now()}`);
+
+                if (!sRes.ok) {
+                    const errorBody = await sRes.json();
+                    throw new Error(errorBody.detail || "Internal Server Error");
+                }
+
+                const students = await sRes.json();
+                const tRes = await fetch(`${API}/get-teachers`);
+                const teachers = await tRes.json();
+
+                document.getElementById('loginGate').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+
+                const studentDiv = document.getElementById('pendingList');
+                studentDiv.innerHTML = students.length ? students.map(s => `
+                    <div class="bg-slate-900/60 p-5 rounded-2xl border border-slate-800 flex items-center justify-between hover:border-blue-500/30 transition-all">
+                        <div class="flex items-center gap-4">
+                            <div class="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center text-xl">👤</div>
+                            <div>
+                                <p class="font-bold text-sm text-slate-100">${s.name}</p>
+                                <p class="text-[10px] text-blue-400 font-mono tracking-tighter">${s.roll_no}</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            ${!s.is_approved ?
+                        `<button onclick="approve('${s.roll_no}')" class="bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded-lg text-[10px] font-bold shadow-lg shadow-blue-900/20">APPROVE</button>` :
+                        '<span class="text-emerald-500 text-[10px] font-bold px-2 py-1 bg-emerald-500/10 rounded-lg">ACTIVE</span>'}
+                            <button onclick="removeStudent('${s.roll_no}')" class="text-red-500 hover:bg-red-500/20 rounded-lg px-2 py-1 font-bold transition-all">×</button>
+                        </div>
+                    </div>`).join('') : '<p class="text-center text-slate-600 text-xs italic py-10">Database is currently empty.</p>';
+
+                const teacherDiv = document.getElementById('teacherList');
+                teacherDiv.innerHTML = teachers.length ? teachers.map(t => `
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-sm text-slate-200">${t.name}</p>
+                            <p class="text-[10px] text-emerald-500 uppercase tracking-widest font-bold">${t.subject} | PIN: ${t.pin}</p>
+                        </div>
+                        <button onclick="removeTeacher(${t.id})" class="text-red-500 hover:bg-red-500/20 px-2 rounded font-black transition-all">×</button>
+                    </div>`).join('') : '<p class="text-center text-slate-600 text-xs italic py-4">No faculty registered.</p>';
+
+            } catch (e) {
+                console.error(e);
+                alert("Critical Connection Failure: " + e.message);
+            }
+        }
+
+        async function approve(roll) {
+            await fetch(`${API}/approve-student?roll_no=${roll}&admin_key=${currentKey}`, { method: 'POST' });
+            loadData();
+        }
+
+        async function removeStudent(roll) {
+            if (confirm("Confirm: Delete student " + roll + " record?")) {
+                await fetch(`${API}/remove-student?roll_no=${roll}&admin_key=${currentKey}`, { method: 'DELETE' });
+                loadData();
+            }
+        }
+
+        async function removeTeacher(id) {
+            if (confirm("Confirm: Remove faculty member from system?")) {
+                await fetch(`${API}/remove-teacher?teacher_id=${id}&admin_key=${currentKey}`, { method: 'DELETE' });
+                loadData();
+            }
+        }
+
+        async function addTeacher() {
+            const n = document.getElementById('tName').value;
+            const s = document.getElementById('tSub').value;
+            const p = document.getElementById('tPin').value;
+            if (!n || !s || !p) return alert("Validation Error: All faculty fields are mandatory.");
+
+            const res = await fetch(`${API}/add-teacher?name=${n}&subject=${s}&email=${n.replace(' ', '')}@knmiet.edu&pin=${p}&admin_key=${currentKey}`, { method: 'POST' });
+            if (res.ok) {
+                document.getElementById('tName').value = "";
+                document.getElementById('tSub').value = "";
+                document.getElementById('tPin').value = "";
+                loadData();
+            }
+        }
+    </script>
+</body>
+
+</html>

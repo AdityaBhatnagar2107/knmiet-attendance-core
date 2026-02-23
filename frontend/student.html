@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Student Registration & Profile | KNMIET</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: #020617;
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        video,
+        canvas {
+            width: 100%;
+            border-radius: 15px;
+            background: #000;
+        }
+    </style>
+</head>
+
+<body class="p-6">
+    <div class="max-w-md mx-auto">
+        <div class="bg-white p-3 rounded-xl mb-8 flex justify-center"><img src="knmiet-logo1494x375.webp" class="h-8">
+        </div>
+
+        <div id="regView" class="glass p-8 rounded-[2.5rem] border-t-4 border-t-purple-600">
+            <h2 class="text-xl font-bold mb-2 text-purple-400">New Registration</h2>
+            <p class="text-[10px] text-slate-500 uppercase mb-6">Create your secure identity</p>
+
+            <div class="space-y-4">
+                <input type="text" id="regName" placeholder="Full Name"
+                    class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl">
+                <input type="text" id="regRoll" maxlength="13" placeholder="Enter 13-Digit Roll No"
+                    class="w-full bg-slate-900 border border-slate-800 p-4 rounded-xl font-mono text-purple-400">
+
+                <div id="cameraArea" class="hidden">
+                    <video id="video" autoplay></video>
+                    <button onclick="takeSnapshot()"
+                        class="w-full bg-emerald-600 py-3 rounded-xl font-bold mt-2">CAPTURE PHOTO</button>
+                </div>
+                <canvas id="canvas" class="hidden"></canvas>
+
+                <button id="openCamBtn" onclick="startCamera()"
+                    class="w-full bg-slate-800 py-4 rounded-xl font-bold">START PHOTO CAPTURE</button>
+                <button onclick="registerStudent()" class="w-full bg-purple-600 py-4 rounded-xl font-bold">SUBMIT FOR
+                    APPROVAL</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = "http://localhost:8000";
+        let photoData = null;
+
+        async function startCamera() {
+            document.getElementById('cameraArea').classList.remove('hidden');
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            document.getElementById('video').srcObject = stream;
+        }
+
+        function takeSnapshot() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            photoData = canvas.toDataURL('image/webp');
+            video.srcObject.getTracks().forEach(t => t.stop());
+            document.getElementById('cameraArea').classList.add('hidden');
+            canvas.classList.remove('hidden');
+            alert("Photo Captured!");
+        }
+
+        async function registerStudent() {
+            const name = document.getElementById('regName').value;
+            const roll = document.getElementById('regRoll').value;
+
+            // Validate 13 Digits
+            if (roll.length !== 13) return alert("Error: Roll Number must be exactly 13 digits.");
+            if (!photoData) return alert("Please capture your photo first.");
+
+            const res = await fetch(`${API}/register-student`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, roll_no: roll, photo: photoData, device_id: navigator.userAgent })
+            });
+
+            if (res.ok) alert("Registration Sent! Wait for Admin approval.");
+        }
+    </script>
+</body>
+
+</html>

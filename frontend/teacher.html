@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Faculty Terminal | KNMIET</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            background: #020617;
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .logo-container {
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+
+        #qrcode img {
+            border: 12px solid white;
+            border-radius: 16px;
+            margin: 0 auto;
+            filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.3));
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-10" onload="initializePage()">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex items-center justify-between mb-10">
+            <div class="logo-container p-3 rounded-xl inline-block"><img src="knmiet-logo1494x375.webp" alt="KNMIET"
+                    class="h-8"></div>
+            <div class="text-right">
+                <h1 class="text-xl font-black text-white uppercase italic">Faculty Terminal</h1>
+                <p class="text-[9px] text-blue-500 font-bold tracking-[0.3em]">SECURE ACCESS ONLY</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="glass p-8 rounded-[2.5rem] border-t-4 border-t-blue-600">
+                <h2 class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-6">Class Management</h2>
+                <div class="space-y-4">
+                    <select id="teacherSelect"
+                        class="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl outline-none text-sm"></select>
+                    <select id="classSelect"
+                        class="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl outline-none text-sm">
+                        <option value="CSE22">B.Tech CSE 2022</option>
+                        <option value="IT22">B.Tech IT 2022</option>
+                    </select>
+                    <button id="startBtn" onclick="startSession()"
+                        class="w-full bg-blue-600 py-4 rounded-2xl font-bold transition-all">VERIFY & START</button>
+                    <p id="lockoutMsg" class="text-red-500 text-[10px] text-center font-bold hidden uppercase mt-2"></p>
+                </div>
+            </div>
+
+            <div class="glass p-8 rounded-[2.5rem] text-center flex flex-col items-center justify-center min-h-[400px]">
+                <div id="qrcode" class="opacity-10 transition-all duration-1000"></div>
+                <div id="timer" class="mt-6 text-2xl font-mono text-blue-400 font-bold tracking-tighter">--s</div>
+                <p id="status" class="text-slate-500 text-[10px] mt-2 uppercase font-bold tracking-widest">Awaiting
+                    Identity</p>
+            </div>
+
+            <div class="glass p-8 rounded-[2.5rem]">
+                <h3 class="font-bold text-[10px] text-slate-500 uppercase tracking-widest mb-4">Live Identity Feed</h3>
+                <div id="attendanceList" class="space-y-3 h-[300px] overflow-y-auto text-xs text-slate-600 italic">
+                    System idle...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let qr = new QRCode(document.getElementById("qrcode"), { width: 220, height: 220 });
+        let sessionActive = false;
+        const API = "http://localhost:8000";
+
+        function initializePage() {
+            const lockoutTime = localStorage.getItem('teacher_lockout_until');
+            if (lockoutTime && Date.now() < parseInt(lockoutTime)) {
+                disableSystem(parseInt(lockoutTime));
+            }
+            loadFaculty();
+        }
+
+        async function loadFaculty() {
+            const res = await fetch(`${API}/get-teachers`);
+            const data = await res.json();
+            document.getElementById('teacherSelect').innerHTML = data.map(t => `<option value="${t.id}">${t.name} (${t.subject})</option>`).join('');
+        }
+
+        async function startSession() {
+            let attempts = parseInt(localStorage.getItem('failed_attempts') || "0");
+            const tid = document.getElementById('teacherSelect').value;
+            const pin = prompt("Identity Verification Required. Enter PIN:");
+
+            const res = await fetch(`${API}/verify-teacher-pin?teacher_id=${tid}&entered_pin=${pin}`);
+
+            if (res.ok) {
+                localStorage.removeItem('failed_attempts');
+                sessionActive = true;
+                document.getElementById('qrcode').classList.remove('opacity-10');
+                document.getElementById('status').innerText = "Broadcasting QR";
+                refreshQR();
+            } else {
+                attempts++;
+                localStorage.setItem('failed_attempts', attempts);
+                if (attempts >= 3) {
+                    // Lock for 3 hours (180 minutes)
+                    const lockUntil = Date.now() + (3 * 60 * 60 * 1000);
+                    localStorage.setItem('teacher_lockout_until', lockUntil);
+                    disableSystem(lockUntil);
+                } else {
+                    alert(`Incorrect PIN. ${3 - attempts} attempts remaining.`);
+                }
+            }
+        }
+
+        function disableSystem(until) {
+            const btn = document.getElementById('startBtn');
+            const msg = document.getElementById('lockoutMsg');
+            btn.disabled = true;
+            btn.classList.replace('bg-blue-600', 'bg-slate-800');
+            msg.classList.remove('hidden');
+
+            setInterval(() => {
+                const diff = until - Date.now();
+                if (diff <= 0) { localStorage.clear(); location.reload(); }
+                const hrs = Math.floor(diff / (1000 * 60 * 60));
+                const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                msg.innerText = `SECURITY LOCKOUT: Retry in ${hrs}h ${mins}m`;
+            }, 1000);
+        }
+
+        async function refreshQR() {
+            if (!sessionActive) return;
+            const res = await fetch(`${API}/generate-qr-string`);
+            const data = await res.json();
+            qr.makeCode(data.current_qr_string);
+            setTimeout(refreshQR, 5000); // 5-second rotation
+            fetchLiveLogs();
+        }
+
+        async function fetchLiveLogs() {
+            const res = await fetch(`${API}/live-logs`);
+            const logs = await res.json();
+            document.getElementById('attendanceList').innerHTML = logs.map(l => `<div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 flex justify-between"><span>${l.student_roll}</span><span class="text-emerald-500 font-bold">VERIFIED</span></div>`).join('');
+        }
+    </script>
+</body>
+
+</html>

@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Body
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,13 +13,13 @@ from .database import engine
 # Initialize database tables
 models.Base.metadata.create_all(bind=engine)
 
-# 1. CREATE THE APP FIRST (The Foundation)
+# 1. CREATE THE APP
 app = FastAPI()
 
-# 2. MOUNT THE FRONTEND (The Roof) - Now it knows what 'app' is!
+# 2. MOUNT THE FRONTEND
 app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
 
-# UNIVERSAL CORS: Essential for preventing "Failed to Fetch"
+# 3. UNIVERSAL CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,24 +28,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3. BONUS: Fix the "Not Found" error on the main link
+# 4. ROOT REDIRECT - Now points to the correct Home Page
 @app.get("/")
 async def root():
-    """Automatically redirects the base URL to the register page"""
-    return RedirectResponse(url="/frontend/register.html")
+    return RedirectResponse(url="/frontend/index.html")
 
-# Admin Key configuration
+# Admin Key
 ADMIN_SECRET = "KNM@2026!Admin" 
 current_qr_string = ""
 
 # --- STUDENT LOGIC ---
 
+# FIXED: Now accepts data as Query Parameters (matches your frontend fetch)
 @app.post("/register-student")
 async def register(roll_no: str, name: str, device_id: str, db: Session = Depends(database.get_db)):
-    # Enforces the 13-digit integrity check for KNMIET Roll Numbers
     if len(roll_no) != 13:
         raise HTTPException(status_code=400, detail="Roll number must be exactly 13 digits")
     
+    # Check if already exists
+    existing_student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
+    if existing_student:
+        return {"message": "Student already registered!"}
+
     new_student = models.Student(
         name=name,
         roll_no=roll_no,
@@ -74,8 +78,6 @@ async def get_profile(roll_no: str, db: Session = Depends(database.get_db)):
 
 @app.get("/pending-students")
 async def get_pending(admin_key: str, db: Session = Depends(database.get_db)):
-    # Debug print to verify connectivity in your terminal logs
-    print(f"DEBUG: Admin key received: {admin_key}") 
     if admin_key != ADMIN_SECRET:
         raise HTTPException(status_code=401, detail="Unauthorized")
     return db.query(models.Student).all()
@@ -90,7 +92,6 @@ async def approve(roll_no: str, admin_key: str, db: Session = Depends(database.g
         db.commit()
     return {"message": "Student Approved"}
 
-# Added Remove Student logic for easier database management
 @app.delete("/remove-student")
 async def remove_student(roll_no: str, admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)

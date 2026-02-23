@@ -1,23 +1,25 @@
 from fastapi import FastAPI, Depends, HTTPException, Body
-from sqlalchemy.orm import Session
-from . import models, database
-from .database import engine
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 from datetime import datetime
 import random, string
 import os
 
-from fastapi.staticfiles import StaticFiles
-import os
+from . import models, database
+from .database import engine
 
-# This tells FastAPI to serve everything in the "frontend" folder
-app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
 # Initialize database tables
 models.Base.metadata.create_all(bind=engine)
 
+# 1. CREATE THE APP FIRST (The Foundation)
 app = FastAPI()
 
-# UNIVERSAL CORS: Essential for preventing "Failed to Fetch" during deployment
+# 2. MOUNT THE FRONTEND (The Roof) - Now it knows what 'app' is!
+app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
+
+# UNIVERSAL CORS: Essential for preventing "Failed to Fetch"
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -25,6 +27,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 3. BONUS: Fix the "Not Found" error on the main link
+@app.get("/")
+async def root():
+    """Automatically redirects the base URL to the register page"""
+    return RedirectResponse(url="/frontend/register.html")
 
 # Admin Key configuration
 ADMIN_SECRET = "KNM@2026!Admin" 

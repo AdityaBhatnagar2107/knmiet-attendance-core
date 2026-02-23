@@ -56,12 +56,40 @@
 
             if (!name || !roll) return alert("Fill all fields!");
 
+            // Add a quick check so the student knows immediately if they typed it wrong
+            if (roll.length !== 13) {
+                msg.style.color = "#ef4444"; // Red error color
+                msg.innerText = "Roll number must be exactly 13 digits!";
+                return;
+            }
+
+            msg.style.color = "#fbbf24"; // Yellow loading color
+            msg.innerText = "Submitting request...";
+
             try {
+                // Using your live Render URL
                 const res = await fetch(`https://knmiet-attendance-core.onrender.com/register-student?roll_no=${roll}&name=${name}&device_id=${devID}`, { method: 'POST' });
                 const data = await res.json();
-                msg.innerText = data.message || data.detail;
-                if (res.ok) msg.style.color = "#4ade80";
-            } catch (err) { msg.innerText = "Connection Failed!"; }
+
+                if (res.ok) {
+                    msg.style.color = "#4ade80"; // Green success color
+                    msg.innerText = "Success! Redirecting to your panel...";
+
+                    // Save the roll number in the phone's memory so student.html knows who logged in
+                    localStorage.setItem('student_roll', roll);
+
+                    // Automatically open the Student Panel after 1.5 seconds
+                    setTimeout(() => {
+                        window.location.href = "student.html";
+                    }, 1500);
+                } else {
+                    msg.style.color = "#ef4444";
+                    msg.innerText = data.detail || data.message;
+                }
+            } catch (err) {
+                msg.style.color = "#ef4444";
+                msg.innerText = "Connection Failed!";
+            }
         }
     </script>
 </body>

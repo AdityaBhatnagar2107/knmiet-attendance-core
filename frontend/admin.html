@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Master ERP Admin | KNMIET</title>
+    <title>Master ERP Admin | KNMIET Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -18,11 +18,7 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Forces Chrome Autofill to stay dark and sleek */
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover,
-        input:-webkit-autofill:focus,
-        input:-webkit-autofill:active {
+        input:-webkit-autofill {
             -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
             -webkit-text-fill-color: white !important;
             transition: background-color 5000s ease-in-out 0s;
@@ -32,6 +28,10 @@
         option {
             background-color: #0f172a !important;
             color: white !important;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
         }
     </style>
 </head>
@@ -47,18 +47,24 @@
         <input type="password" id="adminPass" placeholder="Enter Admin Key"
             class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl mb-4 outline-none text-center focus:border-blue-500 text-white">
         <button onclick="verify()"
-            class="w-full bg-blue-600 py-4 rounded-xl font-bold hover:bg-blue-500 transition-all shadow-lg text-white">UNLOCK
-            DASHBOARD</button>
+            class="w-full bg-blue-600 py-4 rounded-xl font-bold hover:bg-blue-500 transition-all shadow-lg text-white uppercase tracking-widest">Unlock
+            Dashboard</button>
     </div>
 
     <div id="dashboard" class="max-w-7xl mx-auto hidden space-y-8">
+
         <div class="flex justify-between items-center glass p-6 rounded-3xl border-b-4 border-blue-600">
             <div class="flex items-center gap-6">
                 <div class="bg-white p-2 rounded-lg"><img src="knmiet-logo1494x375.webp" class="h-8 object-contain">
                 </div>
                 <div>
-                    <h1 class="text-2xl font-black text-white">KNMIET ERP Admin</h1>
-                    <p class="text-xs text-blue-400 font-bold uppercase tracking-widest">Master Overview</p>
+                    <h1 class="text-2xl font-black text-white leading-none">KNMIET ERP Admin</h1>
+                    <div class="flex gap-4 mt-1">
+                        <p class="text-xs text-blue-400 font-bold uppercase tracking-widest">Master Overview</p>
+                        <a href="timetable.html"
+                            class="text-[10px] bg-blue-900/30 text-blue-300 border border-blue-800 px-2 py-0.5 rounded hover:bg-blue-800 transition-all font-bold">➔
+                            VIEW TIMETABLE</a>
+                    </div>
                 </div>
             </div>
             <button onclick="location.reload()"
@@ -68,7 +74,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="glass p-6 rounded-3xl border-l-4 border-yellow-500">
                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Pending Approvals</h3>
-                <div id="pendingList" class="space-y-3 max-h-[400px] overflow-y-auto"></div>
+                <div id="pendingList" class="space-y-3 max-h-[400px] overflow-y-auto pr-2 scrollbar-hide"></div>
             </div>
 
             <div class="glass p-6 rounded-3xl border-l-4 border-emerald-500">
@@ -95,7 +101,7 @@
                         class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm text-center font-mono outline-none text-white">
                     <button onclick="addTeacher()"
                         class="w-full bg-emerald-600 py-3 rounded-xl font-bold hover:bg-emerald-500 transition-all text-sm text-white">CREATE
-                        FACULTY PROFILE</button>
+                        PROFILE</button>
                 </div>
             </div>
 
@@ -104,9 +110,9 @@
                 <div class="space-y-3">
                     <select id="sTeacher"
                         class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none text-white"></select>
-                    <input type="text" id="sName" placeholder="Subject Name (e.g. Operating System)"
+                    <input type="text" id="sName" placeholder="Subject Name"
                         class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none text-white">
-                    <input type="text" id="sCode" placeholder="Subject Code (e.g. BCS401)"
+                    <input type="text" id="sCode" placeholder="Subject Code"
                         class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none font-mono text-white">
                     <div class="flex gap-2">
                         <select id="sBranch"
@@ -124,14 +130,46 @@
                     </div>
                     <button onclick="assignSubject()"
                         class="w-full bg-purple-600 py-3 rounded-xl font-bold hover:bg-purple-500 transition-all text-sm text-white">LINK
-                        SUBJECT TO FACULTY</button>
+                        SUBJECT</button>
                 </div>
+            </div>
+        </div>
+
+        <div class="glass p-8 rounded-[2.5rem] border-t-4 border-blue-500">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div>
+                    <h3 class="text-xl font-black text-white">Department Analytics</h3>
+                    <p class="text-[10px] text-slate-500 uppercase tracking-widest font-bold">HOD Real-Time Student
+                        Monitoring</p>
+                </div>
+                <div class="flex gap-2 w-full md:w-auto">
+                    <input type="text" id="searchStudent" placeholder="Search by Name/Roll..."
+                        oninput="filterAnalytics()"
+                        class="bg-slate-900 border border-slate-800 p-2.5 rounded-xl text-xs outline-none focus:border-blue-500 text-white w-full md:w-64">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="text-[10px] text-slate-500 uppercase tracking-widest border-b border-slate-800">
+                            <th class="p-4">Student Name</th>
+                            <th class="p-4">Roll Number</th>
+                            <th class="p-4">Year/Branch</th>
+                            <th class="p-4 text-center">Avg Attendance</th>
+                            <th class="p-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="analyticsBody">
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
     <script>
         let currentKey = "";
+        let masterStudents = [];
         const API = "https://knmiet-attendance-core.onrender.com";
 
         async function verify() {
@@ -145,29 +183,49 @@
                 const sRes = await fetch(`${API}/pending-students?admin_key=${currentKey}&t=${Date.now()}`);
                 const tRes = await fetch(`${API}/get-teachers?t=${Date.now()}`);
 
-                if (!sRes.ok) throw new Error("Verification Failed");
-
+                // Fetching all approved students for analytics (Simplified logic for now)
+                // In Phase 9 we can add a specific endpoint for bulk analytics
                 const students = await sRes.json();
                 const teachers = await tRes.json();
 
                 document.getElementById('loginGate').classList.add('hidden');
                 document.getElementById('dashboard').classList.remove('hidden');
 
+                // Render Pending
                 const studentDiv = document.getElementById('pendingList');
                 studentDiv.innerHTML = students.length ? students.map(s => `
                     <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
                         <p class="font-bold text-sm text-slate-100">${s.name} <span class="text-[10px] bg-blue-900/50 text-blue-400 px-2 rounded">${s.branch}-${s.year}</span></p>
-                        <p class="text-xs text-slate-400 font-mono mb-3 mt-1">ERP: ${s.erp_id} | Roll: ${s.roll_no}</p>
-                        <button onclick="approve('${s.roll_no}')" class="w-full bg-blue-600 hover:bg-blue-500 py-2 rounded-lg text-xs font-bold text-white transition-all shadow-md">APPROVE STUDENT</button>
-                    </div>`).join('') : '<p class="text-xs text-slate-500 italic text-center py-4">No pending registrations.</p>';
+                        <p class="text-xs text-slate-400 font-mono mb-3 mt-1">Roll: ${s.roll_no}</p>
+                        <button onclick="approve('${s.roll_no}')" class="w-full bg-blue-600 hover:bg-blue-500 py-2 rounded-lg text-xs font-bold text-white transition-all shadow-md">APPROVE</button>
+                    </div>`).join('') : '<p class="text-xs text-slate-500 italic text-center py-4">No pending approvals.</p>';
 
+                // Render Faculty Select
                 const teacherSelect = document.getElementById('sTeacher');
                 teacherSelect.innerHTML = '<option value="" disabled selected>Select Faculty Member...</option>' +
-                    teachers.map(t => `<option value="${t.id}">${t.name} (${t.role} - ${t.department})</option>`).join('');
+                    teachers.map(t => `<option value="${t.id}">${t.name} (${t.role})</option>`).join('');
 
-            } catch (e) {
-                alert("Connection Error. Check Admin Key.");
-            }
+                // Load initial analytics (using a placeholder for now, you can link to student-erp-data in bulk later)
+                renderAnalytics(students);
+
+            } catch (e) { alert("Connection Error."); }
+        }
+
+        function renderAnalytics(list) {
+            const body = document.getElementById('analyticsBody');
+            body.innerHTML = list.map(s => `
+                <tr class="border-b border-slate-800/50 hover:bg-slate-800/20 transition-all group">
+                    <td class="p-4 text-sm font-bold text-white">${s.name}</td>
+                    <td class="p-4 text-xs font-mono text-slate-400">${s.roll_no}</td>
+                    <td class="p-4 text-[10px]"><span class="bg-slate-800 text-slate-300 px-2 py-1 rounded">${s.branch} Yr ${s.year}</span></td>
+                    <td class="p-4 text-center">
+                        <span class="text-xs font-black text-emerald-400">${s.total_lectures || 0} Lecs</span>
+                    </td>
+                    <td class="p-4 text-right">
+                        <button class="text-[9px] font-black text-blue-400 border border-blue-900/50 px-2 py-1 rounded hover:bg-blue-600 hover:text-white transition-all">VIEW DOSSIER</button>
+                    </td>
+                </tr>
+            `).join('');
         }
 
         async function approve(roll) {
@@ -181,14 +239,9 @@
             const r = document.getElementById('tRole').value;
             const d = document.getElementById('tDept').value;
             const p = document.getElementById('tPin').value;
-
             if (!n || !e || !p) return alert("Fill all fields");
-
             const res = await fetch(`${API}/add-teacher?name=${n}&email=${e}&pin=${p}&role=${r}&department=${d}&admin_key=${currentKey}`, { method: 'POST' });
-            if (res.ok) {
-                alert(`${r} Profile Created Successfully!`);
-                loadData();
-            }
+            if (res.ok) { alert(`${r} Created!`); loadData(); }
         }
 
         async function assignSubject() {
@@ -197,11 +250,9 @@
             const code = document.getElementById('sCode').value;
             const branch = document.getElementById('sBranch').value;
             const year = document.getElementById('sYear').value;
-
-            if (!tid || !name || !code) return alert("Select faculty and fill subject details.");
-
+            if (!tid || !name || !code) return alert("Fill all fields.");
             const res = await fetch(`${API}/assign-subject?name=${name}&code=${code}&branch=${branch}&year=${year}&teacher_id=${tid}&admin_key=${currentKey}`, { method: 'POST' });
-            if (res.ok) alert(`Subject ${code} assigned successfully!`);
+            if (res.ok) alert(`Subject ${code} Assigned!`);
         }
     </script>
 </body>

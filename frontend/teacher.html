@@ -32,7 +32,6 @@
             margin: 0;
         }
 
-        /* Forces Chrome Autofill to stay dark and sleek */
         input:-webkit-autofill {
             -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
             -webkit-text-fill-color: white !important;
@@ -53,9 +52,7 @@
         <p class="text-[10px] text-slate-500 mb-6 uppercase tracking-widest font-bold">Secure Access</p>
 
         <select id="teacherSelect"
-            class="w-full bg-slate-900/80 border border-slate-700 p-4 rounded-xl mb-3 outline-none focus:border-emerald-500 text-white">
-            <option value="" disabled selected>Loading Faculty...</option>
-        </select>
+            class="w-full bg-slate-900/80 border border-slate-700 p-4 rounded-xl mb-3 outline-none focus:border-emerald-500 text-white"></select>
 
         <input type="password" id="teacherPin" placeholder="4-Digit PIN"
             class="w-full bg-slate-900/80 border border-slate-700 p-4 rounded-xl mb-4 outline-none text-center font-mono tracking-widest focus:border-emerald-500 text-white"
@@ -66,21 +63,21 @@
         <p id="loginMsg" class="mt-4 text-xs font-bold text-red-400 h-4"></p>
     </div>
 
-    <div id="dashboard" class="w-full max-w-5xl hidden space-y-6">
+    <div id="dashboard" class="w-full max-w-6xl hidden space-y-6">
 
         <div class="glass p-6 rounded-3xl flex justify-between items-center border-b-4 border-emerald-500">
             <div>
                 <h1 id="facultyNameDisplay" class="text-2xl font-black text-white">Welcome, Professor</h1>
                 <p id="facultyRoleDisplay" class="text-xs text-emerald-400 font-bold uppercase tracking-widest">Faculty
-                    - CSE</p>
+                </p>
             </div>
             <button onclick="location.reload()"
                 class="text-xs bg-red-900/20 px-4 py-2 rounded-xl text-red-400 border border-red-900/50 hover:bg-red-900/40 font-bold">LOGOUT</button>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            <div class="glass p-6 rounded-3xl space-y-4 md:col-span-1 border-l-4 border-blue-500">
+            <div class="glass p-6 rounded-3xl space-y-4 lg:col-span-1 border-l-4 border-blue-500">
                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Select Assigned Class</h3>
                 <select id="subjectSelect"
                     class="w-full bg-slate-900/80 border border-slate-700 p-3 rounded-xl outline-none text-white text-sm">
@@ -96,17 +93,13 @@
                         EXAM MARKS</button>
                     <button onclick="downloadExcel()"
                         class="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-bold text-sm text-white transition-all shadow-md flex items-center justify-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                        </svg>
                         EXPORT TO EXCEL
                     </button>
                 </div>
             </div>
 
             <div id="workspace"
-                class="glass p-6 rounded-3xl md:col-span-2 flex flex-col items-center justify-center min-h-[400px] border-t-4 border-slate-800 relative overflow-hidden">
+                class="glass p-6 rounded-3xl lg:col-span-2 flex flex-col items-center justify-center min-h-[400px] border-t-4 border-slate-800 relative overflow-hidden overflow-x-auto">
                 <p class="text-slate-500 text-sm italic">Select a class and choose an action from the menu.</p>
             </div>
 
@@ -117,8 +110,8 @@
         const API = "https://knmiet-attendance-core.onrender.com";
         let currentTeacherId = null;
         let qrInterval = null;
+        let currentRoster = [];
 
-        // 1. Fetch Teachers for Dropdown
         async function loadTeachers() {
             try {
                 const res = await fetch(`${API}/get-teachers?t=${Date.now()}`);
@@ -126,12 +119,9 @@
                 const sel = document.getElementById('teacherSelect');
                 sel.innerHTML = '<option value="" disabled selected>Select Your Name...</option>' +
                     teachers.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-            } catch (e) {
-                document.getElementById('loginMsg').innerText = "Server connecting... Please wait.";
-            }
+            } catch (e) { document.getElementById('loginMsg').innerText = "Server connecting... Please wait."; }
         }
 
-        // 2. Login
         async function login() {
             const tid = document.getElementById('teacherSelect').value;
             const pin = document.getElementById('teacherPin').value;
@@ -145,47 +135,34 @@
                     const data = await res.json();
                     currentTeacherId = tid;
 
-                    // Setup Dashboard Info
                     const tName = document.getElementById('teacherSelect').options[document.getElementById('teacherSelect').selectedIndex].text;
                     document.getElementById('facultyNameDisplay').innerText = `Welcome, ${tName}`;
                     document.getElementById('facultyRoleDisplay').innerText = data.role;
 
                     document.getElementById('loginGate').classList.add('hidden');
                     document.getElementById('dashboard').classList.remove('hidden');
-
-                    // Fetch Subjects specifically for this teacher (Will wire to API next)
                     loadTeacherSubjects(tid);
-                } else {
-                    msg.innerText = "Invalid PIN.";
-                }
-            } catch (e) {
-                msg.innerText = "Network Error.";
-            }
+                } else { msg.innerText = "Invalid PIN."; }
+            } catch (e) { msg.innerText = "Network Error."; }
         }
 
-        // 3. Load Subjects (Connecting to Phase 4.5 Backend patch)
         async function loadTeacherSubjects(tid) {
-            try {
-                const res = await fetch(`${API}/teacher-subjects?teacher_id=${tid}&t=${Date.now()}`);
-                if (res.ok) {
-                    const subjects = await res.json();
-                    const sel = document.getElementById('subjectSelect');
-                    sel.innerHTML = '<option value="" disabled selected>Select Subject...</option>' +
-                        subjects.map(s => `<option value="${s.id}">${s.code} - ${s.name} (${s.branch} Yr ${s.year})</option>`).join('');
-                }
-            } catch (e) {
-                console.log("Waiting for backend patch...");
+            const res = await fetch(`${API}/teacher-subjects?teacher_id=${tid}&t=${Date.now()}`);
+            if (res.ok) {
+                const subjects = await res.json();
+                const sel = document.getElementById('subjectSelect');
+                sel.innerHTML = '<option value="" disabled selected>Select Subject...</option>' +
+                    subjects.map(s => `<option value="${s.id}">${s.code} - ${s.name} (${s.branch} Yr ${s.year})</option>`).join('');
             }
         }
 
-        // 4. Start QR Class
         function startClass() {
             const subId = document.getElementById('subjectSelect').value;
             if (!subId) return alert("Please select a subject first!");
 
             clearInterval(qrInterval);
             const workspace = document.getElementById('workspace');
-            workspace.className = "glass p-6 rounded-3xl md:col-span-2 flex flex-col items-center justify-center min-h-[400px] border-t-4 border-blue-500 relative";
+            workspace.className = "glass p-6 rounded-3xl lg:col-span-2 flex flex-col items-center justify-center min-h-[400px] border-t-4 border-blue-500 relative";
 
             workspace.innerHTML = `
                 <div class="absolute top-0 right-0 bg-blue-600 text-[10px] font-black px-4 py-1 rounded-bl-xl tracking-widest uppercase text-white shadow-lg">LIVE ATTENDANCE</div>
@@ -200,42 +177,130 @@
 
         async function generateQR() {
             const subId = document.getElementById('subjectSelect').value;
-            try {
-                const res = await fetch(`${API}/generate-qr-string`);
-                const data = await res.json();
-                document.getElementById('qrcode').innerHTML = "";
-                // Note: The app now passes the qr_string AND the specific subject ID in the QR data!
-                new QRCode(document.getElementById('qrcode'), {
-                    text: `${data.current_qr_string}|${subId}`,
-                    width: 220, height: 220, colorDark: "#000000", colorLight: "#ffffff"
-                });
-            } catch (e) { console.error("QR Error"); }
+            const res = await fetch(`${API}/generate-qr-string`);
+            const data = await res.json();
+            document.getElementById('qrcode').innerHTML = "";
+            new QRCode(document.getElementById('qrcode'), {
+                text: `${data.current_qr_string}|${subId}`,
+                width: 220, height: 220, colorDark: "#000000", colorLight: "#ffffff"
+            });
         }
 
         function stopClass() {
             clearInterval(qrInterval);
-            document.getElementById('workspace').innerHTML = '<p class="text-slate-500 text-sm italic">Lecture Ended. Data Saved.</p>';
-            document.getElementById('workspace').className = "glass p-6 rounded-3xl md:col-span-2 flex flex-col items-center justify-center min-h-[400px] border-t-4 border-slate-800";
+            document.getElementById('workspace').innerHTML = '<p class="text-slate-500 text-sm italic">Lecture Ended.</p>';
         }
 
-        // 5. Placeholder for Marks and Excel (Will link to backend in next step)
-        function openMarksPanel() {
+        // --- NEW: THE MARKS GRADING SHEET ---
+        async function openMarksPanel() {
             const subId = document.getElementById('subjectSelect').value;
             if (!subId) return alert("Please select a subject first!");
-            document.getElementById('workspace').innerHTML = `
-                <div class="w-full text-center">
-                    <h2 class="text-xl font-bold text-purple-400 mb-2 uppercase tracking-widest">Sessional & PUT Marks</h2>
-                    <p class="text-sm text-slate-400">Student roster loading...</p>
-                    <p class="text-[10px] text-slate-500 mt-4">(Backend API connecting in Phase 4.5)</p>
-                </div>
-            `;
-            document.getElementById('workspace').className = "glass p-6 rounded-3xl md:col-span-2 flex flex-col items-center justify-center min-h-[400px] border-t-4 border-purple-500";
+            clearInterval(qrInterval);
+
+            const workspace = document.getElementById('workspace');
+            workspace.className = "glass p-6 rounded-3xl lg:col-span-2 flex flex-col items-start justify-start min-h-[400px] border-t-4 border-purple-500 overflow-x-auto w-full";
+            workspace.innerHTML = `<p class="text-purple-400 animate-pulse">Fetching Secure Roster...</p>`;
+
+            try {
+                const res = await fetch(`${API}/subject-roster?subject_id=${subId}&t=${Date.now()}`);
+                const data = await res.json();
+                currentRoster = data.roster;
+
+                if (currentRoster.length === 0) {
+                    workspace.innerHTML = `<p class="text-slate-400">No approved students found for this class yet.</p>`;
+                    return;
+                }
+
+                let tableHTML = `
+                    <h2 class="text-xl font-bold text-purple-400 mb-4 uppercase tracking-widest w-full text-left">Grading Sheet: ${data.subject_name}</h2>
+                    <table class="w-full text-left border-collapse min-w-[600px]">
+                        <thead>
+                            <tr class="border-b border-slate-700 text-xs text-slate-400 uppercase tracking-widest">
+                                <th class="p-3">ERP ID</th>
+                                <th class="p-3">Name</th>
+                                <th class="p-3 text-center">S1 (20)</th>
+                                <th class="p-3 text-center">S2 (40)</th>
+                                <th class="p-3 text-center">PUT (70)</th>
+                                <th class="p-3 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                currentRoster.forEach(s => {
+                    tableHTML += `
+                        <tr class="border-b border-slate-800/50 hover:bg-slate-800/20">
+                            <td class="p-3 text-sm font-mono text-slate-300">${s.erp_id}</td>
+                            <td class="p-3 text-sm font-bold text-white">${s.name}</td>
+                            <td class="p-3 text-center"><input type="number" id="s1_${s.roll_no}" value="${s.s1}" class="w-16 bg-slate-900 border border-slate-700 text-center rounded p-1 text-sm outline-none focus:border-purple-500"></td>
+                            <td class="p-3 text-center"><input type="number" id="s2_${s.roll_no}" value="${s.s2}" class="w-16 bg-slate-900 border border-slate-700 text-center rounded p-1 text-sm outline-none focus:border-purple-500"></td>
+                            <td class="p-3 text-center"><input type="number" id="put_${s.roll_no}" value="${s.put}" class="w-16 bg-slate-900 border border-slate-700 text-center rounded p-1 text-sm outline-none focus:border-purple-500"></td>
+                            <td class="p-3 text-center"><button onclick="saveMarks('${s.roll_no}')" id="btn_${s.roll_no}" class="bg-purple-600 hover:bg-purple-500 text-[10px] font-bold px-3 py-1.5 rounded uppercase tracking-wider transition-all">Save</button></td>
+                        </tr>
+                    `;
+                });
+
+                tableHTML += `</tbody></table>`;
+                workspace.innerHTML = tableHTML;
+
+            } catch (e) {
+                workspace.innerHTML = `<p class="text-red-400">Failed to load roster.</p>`;
+            }
         }
 
-        function downloadExcel() {
+        async function saveMarks(rollNo) {
+            const subId = document.getElementById('subjectSelect').value;
+            const s1 = document.getElementById(`s1_${rollNo}`).value || 0;
+            const s2 = document.getElementById(`s2_${rollNo}`).value || 0;
+            const put = document.getElementById(`put_${rollNo}`).value || 0;
+            const btn = document.getElementById(`btn_${rollNo}`);
+
+            btn.innerText = "Saving...";
+
+            try {
+                const res = await fetch(`${API}/update-marks?roll_no=${rollNo}&subject_id=${subId}&s1=${s1}&s2=${s2}&put=${put}`, { method: 'POST' });
+                if (res.ok) {
+                    btn.classList.replace('bg-purple-600', 'bg-emerald-500');
+                    btn.innerText = "Saved!";
+                    setTimeout(() => {
+                        btn.classList.replace('bg-emerald-500', 'bg-purple-600');
+                        btn.innerText = "Save";
+                    }, 2000);
+                }
+            } catch (e) {
+                btn.innerText = "Error";
+            }
+        }
+
+        // --- NEW: THE 1-CLICK EXCEL EXPORT ---
+        async function downloadExcel() {
             const subId = document.getElementById('subjectSelect').value;
             if (!subId) return alert("Please select a subject to export!");
-            alert("Generating Excel file from secure PostgreSQL database... (Backend route linking next)");
+
+            // Fetch fresh data before downloading
+            const res = await fetch(`${API}/subject-roster?subject_id=${subId}&t=${Date.now()}`);
+            const data = await res.json();
+            const roster = data.roster;
+
+            if (roster.length === 0) return alert("No students to export.");
+
+            // Create CSV text format
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "ERP ID,Roll Number,Student Name,Sessional 1 (20),Sessional 2 (40),PUT Marks (70)\n";
+
+            roster.forEach(student => {
+                let row = `${student.erp_id},${student.roll_no},${student.name},${student.s1},${student.s2},${student.put}`;
+                csvContent += row + "\n";
+            });
+
+            // Trigger the browser download
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `KNMIET_Marks_${data.subject_name.replace(/\s+/g, '_')}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
     </script>
 </body>

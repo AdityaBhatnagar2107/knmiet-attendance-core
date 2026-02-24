@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Faculty Terminal | KNMIET</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty ERP Portal | KNMIET</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
@@ -14,143 +15,227 @@
         }
 
         .glass {
-            background: rgba(255, 255, 255, 0.02);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .logo-container {
-            background: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        select,
+        option {
+            background-color: #0f172a !important;
+            color: white !important;
         }
 
-        #qrcode img {
-            border: 12px solid white;
-            border-radius: 16px;
-            margin: 0 auto;
-            filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.3));
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Forces Chrome Autofill to stay dark and sleek */
+        input:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
+            -webkit-text-fill-color: white !important;
+            transition: background-color 5000s ease-in-out 0s;
         }
     </style>
 </head>
 
-<body class="p-4 md:p-10" onload="initializePage()">
-    <div class="max-w-6xl mx-auto">
-        <div class="flex items-center justify-between mb-10">
-            <div class="logo-container p-3 rounded-xl inline-block"><img src="knmiet-logo1494x375.webp" alt="KNMIET"
-                    class="h-8"></div>
-            <div class="text-right">
-                <h1 class="text-xl font-black text-white uppercase italic">Faculty Terminal</h1>
-                <p class="text-[9px] text-blue-500 font-bold tracking-[0.3em]">SECURE ACCESS ONLY</p>
+<body class="p-6 flex flex-col items-center min-h-screen" onload="loadTeachers()">
+
+    <div id="loginGate"
+        class="max-w-md w-full mt-16 glass p-10 rounded-[2.5rem] text-center border-t-4 border-emerald-500">
+        <div class="bg-white p-3 rounded-2xl mb-8 inline-block shadow-lg">
+            <img src="knmiet-logo.webp" class="h-10 object-contain" alt="KNMIET"
+                onerror="this.src='knmiet-logo1494x375.webp'">
+        </div>
+        <h2 class="text-2xl font-bold text-emerald-400 mb-1">Faculty Portal</h2>
+        <p class="text-[10px] text-slate-500 mb-6 uppercase tracking-widest font-bold">Secure Access</p>
+
+        <select id="teacherSelect"
+            class="w-full bg-slate-900/80 border border-slate-700 p-4 rounded-xl mb-3 outline-none focus:border-emerald-500 text-white">
+            <option value="" disabled selected>Loading Faculty...</option>
+        </select>
+
+        <input type="password" id="teacherPin" placeholder="4-Digit PIN"
+            class="w-full bg-slate-900/80 border border-slate-700 p-4 rounded-xl mb-4 outline-none text-center font-mono tracking-widest focus:border-emerald-500 text-white"
+            maxlength="4">
+
+        <button onclick="login()"
+            class="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-xl font-bold transition-all shadow-lg text-white">AUTHENTICATE</button>
+        <p id="loginMsg" class="mt-4 text-xs font-bold text-red-400 h-4"></p>
+    </div>
+
+    <div id="dashboard" class="w-full max-w-5xl hidden space-y-6">
+
+        <div class="glass p-6 rounded-3xl flex justify-between items-center border-b-4 border-emerald-500">
+            <div>
+                <h1 id="facultyNameDisplay" class="text-2xl font-black text-white">Welcome, Professor</h1>
+                <p id="facultyRoleDisplay" class="text-xs text-emerald-400 font-bold uppercase tracking-widest">Faculty
+                    - CSE</p>
             </div>
+            <button onclick="location.reload()"
+                class="text-xs bg-red-900/20 px-4 py-2 rounded-xl text-red-400 border border-red-900/50 hover:bg-red-900/40 font-bold">LOGOUT</button>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="glass p-8 rounded-[2.5rem] border-t-4 border-t-blue-600">
-                <h2 class="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-6">Class Management</h2>
-                <div class="space-y-4">
-                    <select id="teacherSelect"
-                        class="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl outline-none text-sm"></select>
-                    <select id="classSelect"
-                        class="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl outline-none text-sm">
-                        <option value="CSE22">B.Tech CSE 2022</option>
-                        <option value="IT22">B.Tech IT 2022</option>
-                    </select>
-                    <button id="startBtn" onclick="startSession()"
-                        class="w-full bg-blue-600 py-4 rounded-2xl font-bold transition-all">VERIFY & START</button>
-                    <p id="lockoutMsg" class="text-red-500 text-[10px] text-center font-bold hidden uppercase mt-2"></p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <div class="glass p-6 rounded-3xl space-y-4 md:col-span-1 border-l-4 border-blue-500">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Select Assigned Class</h3>
+                <select id="subjectSelect"
+                    class="w-full bg-slate-900/80 border border-slate-700 p-3 rounded-xl outline-none text-white text-sm">
+                    <option value="" disabled selected>Select Subject...</option>
+                </select>
+
+                <div class="pt-4 border-t border-slate-800 space-y-3">
+                    <button onclick="startClass()"
+                        class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold text-sm text-white transition-all shadow-md">GENERATE
+                        ATTENDANCE QR</button>
+                    <button onclick="openMarksPanel()"
+                        class="w-full bg-purple-600 hover:bg-purple-500 py-3 rounded-xl font-bold text-sm text-white transition-all shadow-md">ENTER
+                        EXAM MARKS</button>
+                    <button onclick="downloadExcel()"
+                        class="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-bold text-sm text-white transition-all shadow-md flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        EXPORT TO EXCEL
+                    </button>
                 </div>
             </div>
 
-            <div class="glass p-8 rounded-[2.5rem] text-center flex flex-col items-center justify-center min-h-[400px]">
-                <div id="qrcode" class="opacity-10 transition-all duration-1000"></div>
-                <div id="timer" class="mt-6 text-2xl font-mono text-blue-400 font-bold tracking-tighter">--s</div>
-                <p id="status" class="text-slate-500 text-[10px] mt-2 uppercase font-bold tracking-widest">Awaiting
-                    Identity</p>
+            <div id="workspace"
+                class="glass p-6 rounded-3xl md:col-span-2 flex flex-col items-center justify-center min-h-[400px] border-t-4 border-slate-800 relative overflow-hidden">
+                <p class="text-slate-500 text-sm italic">Select a class and choose an action from the menu.</p>
             </div>
 
-            <div class="glass p-8 rounded-[2.5rem]">
-                <h3 class="font-bold text-[10px] text-slate-500 uppercase tracking-widest mb-4">Live Identity Feed</h3>
-                <div id="attendanceList" class="space-y-3 h-[300px] overflow-y-auto text-xs text-slate-600 italic">
-                    System idle...</div>
-            </div>
         </div>
     </div>
 
     <script>
-        let qr = new QRCode(document.getElementById("qrcode"), { width: 220, height: 220 });
-        let sessionActive = false;
         const API = "https://knmiet-attendance-core.onrender.com";
+        let currentTeacherId = null;
+        let qrInterval = null;
 
-        function initializePage() {
-            const lockoutTime = localStorage.getItem('teacher_lockout_until');
-            if (lockoutTime && Date.now() < parseInt(lockoutTime)) {
-                disableSystem(parseInt(lockoutTime));
+        // 1. Fetch Teachers for Dropdown
+        async function loadTeachers() {
+            try {
+                const res = await fetch(`${API}/get-teachers?t=${Date.now()}`);
+                const teachers = await res.json();
+                const sel = document.getElementById('teacherSelect');
+                sel.innerHTML = '<option value="" disabled selected>Select Your Name...</option>' +
+                    teachers.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+            } catch (e) {
+                document.getElementById('loginMsg').innerText = "Server connecting... Please wait.";
             }
-            loadFaculty();
         }
 
-        async function loadFaculty() {
-            const res = await fetch(`${API}/get-teachers`);
-            const data = await res.json();
-            document.getElementById('teacherSelect').innerHTML = data.map(t => `<option value="${t.id}">${t.name} (${t.subject})</option>`).join('');
-        }
-
-        async function startSession() {
-            let attempts = parseInt(localStorage.getItem('failed_attempts') || "0");
+        // 2. Login
+        async function login() {
             const tid = document.getElementById('teacherSelect').value;
-            const pin = prompt("Identity Verification Required. Enter PIN:");
+            const pin = document.getElementById('teacherPin').value;
+            const msg = document.getElementById('loginMsg');
 
-            const res = await fetch(`${API}/verify-teacher-pin?teacher_id=${tid}&entered_pin=${pin}`);
+            if (!tid || !pin) return msg.innerText = "Select name and enter PIN.";
 
-            if (res.ok) {
-                localStorage.removeItem('failed_attempts');
-                sessionActive = true;
-                document.getElementById('qrcode').classList.remove('opacity-10');
-                document.getElementById('status').innerText = "Broadcasting QR";
-                refreshQR();
-            } else {
-                attempts++;
-                localStorage.setItem('failed_attempts', attempts);
-                if (attempts >= 3) {
-                    // Lock for 3 hours (180 minutes)
-                    const lockUntil = Date.now() + (3 * 60 * 60 * 1000);
-                    localStorage.setItem('teacher_lockout_until', lockUntil);
-                    disableSystem(lockUntil);
+            try {
+                const res = await fetch(`${API}/verify-teacher-pin?teacher_id=${tid}&entered_pin=${pin}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    currentTeacherId = tid;
+
+                    // Setup Dashboard Info
+                    const tName = document.getElementById('teacherSelect').options[document.getElementById('teacherSelect').selectedIndex].text;
+                    document.getElementById('facultyNameDisplay').innerText = `Welcome, ${tName}`;
+                    document.getElementById('facultyRoleDisplay').innerText = data.role;
+
+                    document.getElementById('loginGate').classList.add('hidden');
+                    document.getElementById('dashboard').classList.remove('hidden');
+
+                    // Fetch Subjects specifically for this teacher (Will wire to API next)
+                    loadTeacherSubjects(tid);
                 } else {
-                    alert(`Incorrect PIN. ${3 - attempts} attempts remaining.`);
+                    msg.innerText = "Invalid PIN.";
                 }
+            } catch (e) {
+                msg.innerText = "Network Error.";
             }
         }
 
-        function disableSystem(until) {
-            const btn = document.getElementById('startBtn');
-            const msg = document.getElementById('lockoutMsg');
-            btn.disabled = true;
-            btn.classList.replace('bg-blue-600', 'bg-slate-800');
-            msg.classList.remove('hidden');
-
-            setInterval(() => {
-                const diff = until - Date.now();
-                if (diff <= 0) { localStorage.clear(); location.reload(); }
-                const hrs = Math.floor(diff / (1000 * 60 * 60));
-                const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                msg.innerText = `SECURITY LOCKOUT: Retry in ${hrs}h ${mins}m`;
-            }, 1000);
+        // 3. Load Subjects (Connecting to Phase 4.5 Backend patch)
+        async function loadTeacherSubjects(tid) {
+            try {
+                const res = await fetch(`${API}/teacher-subjects?teacher_id=${tid}&t=${Date.now()}`);
+                if (res.ok) {
+                    const subjects = await res.json();
+                    const sel = document.getElementById('subjectSelect');
+                    sel.innerHTML = '<option value="" disabled selected>Select Subject...</option>' +
+                        subjects.map(s => `<option value="${s.id}">${s.code} - ${s.name} (${s.branch} Yr ${s.year})</option>`).join('');
+                }
+            } catch (e) {
+                console.log("Waiting for backend patch...");
+            }
         }
 
-        async function refreshQR() {
-            if (!sessionActive) return;
-            const res = await fetch(`${API}/generate-qr-string`);
-            const data = await res.json();
-            qr.makeCode(data.current_qr_string);
-            setTimeout(refreshQR, 5000); // 5-second rotation
-            fetchLiveLogs();
+        // 4. Start QR Class
+        function startClass() {
+            const subId = document.getElementById('subjectSelect').value;
+            if (!subId) return alert("Please select a subject first!");
+
+            clearInterval(qrInterval);
+            const workspace = document.getElementById('workspace');
+            workspace.className = "glass p-6 rounded-3xl md:col-span-2 flex flex-col items-center justify-center min-h-[400px] border-t-4 border-blue-500 relative";
+
+            workspace.innerHTML = `
+                <div class="absolute top-0 right-0 bg-blue-600 text-[10px] font-black px-4 py-1 rounded-bl-xl tracking-widest uppercase text-white shadow-lg">LIVE ATTENDANCE</div>
+                <h2 class="text-xl font-bold text-blue-400 mb-6 uppercase tracking-widest">Scan to Mark Present</h2>
+                <div id="qrcode" class="p-4 bg-white rounded-2xl shadow-[0_0_30px_rgba(59,130,246,0.3)]"></div>
+                <p class="mt-6 text-xs text-slate-400 font-mono" id="qrTimer">Refreshing in 5s...</p>
+                <button onclick="stopClass()" class="mt-6 text-xs font-bold text-red-500 hover:text-red-400 uppercase tracking-widest border border-red-900/50 px-6 py-2 rounded-lg transition-all">END LECTURE</button>
+            `;
+            generateQR();
+            qrInterval = setInterval(generateQR, 5000);
         }
 
-        async function fetchLiveLogs() {
-            const res = await fetch(`${API}/live-logs`);
-            const logs = await res.json();
-            document.getElementById('attendanceList').innerHTML = logs.map(l => `<div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 flex justify-between"><span>${l.student_roll}</span><span class="text-emerald-500 font-bold">VERIFIED</span></div>`).join('');
+        async function generateQR() {
+            const subId = document.getElementById('subjectSelect').value;
+            try {
+                const res = await fetch(`${API}/generate-qr-string`);
+                const data = await res.json();
+                document.getElementById('qrcode').innerHTML = "";
+                // Note: The app now passes the qr_string AND the specific subject ID in the QR data!
+                new QRCode(document.getElementById('qrcode'), {
+                    text: `${data.current_qr_string}|${subId}`,
+                    width: 220, height: 220, colorDark: "#000000", colorLight: "#ffffff"
+                });
+            } catch (e) { console.error("QR Error"); }
+        }
+
+        function stopClass() {
+            clearInterval(qrInterval);
+            document.getElementById('workspace').innerHTML = '<p class="text-slate-500 text-sm italic">Lecture Ended. Data Saved.</p>';
+            document.getElementById('workspace').className = "glass p-6 rounded-3xl md:col-span-2 flex flex-col items-center justify-center min-h-[400px] border-t-4 border-slate-800";
+        }
+
+        // 5. Placeholder for Marks and Excel (Will link to backend in next step)
+        function openMarksPanel() {
+            const subId = document.getElementById('subjectSelect').value;
+            if (!subId) return alert("Please select a subject first!");
+            document.getElementById('workspace').innerHTML = `
+                <div class="w-full text-center">
+                    <h2 class="text-xl font-bold text-purple-400 mb-2 uppercase tracking-widest">Sessional & PUT Marks</h2>
+                    <p class="text-sm text-slate-400">Student roster loading...</p>
+                    <p class="text-[10px] text-slate-500 mt-4">(Backend API connecting in Phase 4.5)</p>
+                </div>
+            `;
+            document.getElementById('workspace').className = "glass p-6 rounded-3xl md:col-span-2 flex flex-col items-center justify-center min-h-[400px] border-t-4 border-purple-500";
+        }
+
+        function downloadExcel() {
+            const subId = document.getElementById('subjectSelect').value;
+            if (!subId) return alert("Please select a subject to export!");
+            alert("Generating Excel file from secure PostgreSQL database... (Backend route linking next)");
         }
     </script>
 </body>

@@ -102,20 +102,21 @@
             }
 
             msg.style.color = "#fbbf24";
-            msg.innerText = "Registering in ERP System...";
+            msg.innerText = "Processing Details...";
 
             try {
                 const res = await fetch(`https://knmiet-attendance-core.onrender.com/register-student?erp_id=${erp}&roll_no=${roll}&name=${name}&branch=${branch}&year=${year}&device_id=${devID}`, { method: 'POST' });
                 const data = await res.json();
 
-                if (res.ok && !data.message.includes("already registered")) {
+                // NEW LOGIC: Checks for the specific "success" status from our new backend
+                if (res.ok && data.status === "success") {
                     msg.style.color = "#4ade80";
-                    msg.innerText = "Success! Redirecting to panel...";
+                    msg.innerText = data.message; // Will display either "Registration sent" or "Welcome back!"
                     localStorage.setItem('student_roll', roll);
                     setTimeout(() => window.location.href = "student.html", 1500);
                 } else {
                     msg.style.color = "#ef4444";
-                    msg.innerText = data.detail || data.message;
+                    msg.innerText = data.detail || data.message || "Registration Error";
                 }
             } catch (err) {
                 msg.style.color = "#ef4444";

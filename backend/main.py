@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy import func  # NEW: Required for Phase 6 math calculations
 from datetime import datetime
 import random, string
 import os
@@ -184,3 +185,56 @@ async def get_subject_roster(subject_id: int, db: Session = Depends(database.get
         })
         
     return {"subject_name": subject.name, "roster": roster}
+
+# --- PHASE 6: STUDENT DASHBOARD ANALYTICS ---
+@app.get("/student-erp-data")
+async def get_student_erp_data(roll_no: str, db: Session = Depends(database.get_db)):
+    student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    # Find all subjects for this student's specific branch and year
+    subjects = db.query(models.Subject).filter(
+        models.Subject.branch == student.branch,
+        models.Subject.year == student.year
+    ).all()
+
+    subject_data = []
+    total_attended_overall = 0
+    total_classes_overall = 0
+
+    for sub in subjects:
+        # 1. Count student's attendance for this subject
+        attended = db.query(models.Attendance).filter(
+            models.Attendance.student_roll == roll_no,
+            models.Attendance.subject_id == sub.id
+        ).count()
+        
+        # 2. Find total classes held (heuristic: max attendance of any student in this class)
+        max_att = db.query(func.count(models.Attendance.id)).filter(
+            models.Attendance.subject_id == sub.id
+        ).group_by(models.Attendance.student_roll).order_by(func.count(models.Attendance.id).desc()).first()
+        
+        total_held = max_att[0] if max_att else 0
+        if total_held < attended: total_held = attended # Sanity check
+
+        # 3. Fetch their Exam Marks
+        marks = db.query(models.ExamMarks).filter_by(student_roll=roll_no, subject_id=sub.id).first()
+        
+        subject_data.append({
+            "subject_name": sub.name,
+            "code": sub.code,
+            "attended": attended,
+            "total_held": total_held,
+            "s1": marks.sessional_1 if marks else 0,
+            "s2": marks.sessional_2 if marks else 0,
+            "put": marks.put_marks if marks else 0
+        })
+        total_attended_overall += attended
+        total_classes_overall += total_held
+
+    return {
+        "overall_attended": total_attended_overall,
+        "overall_total": total_classes_overall,
+        "subjects": subject_data
+    }

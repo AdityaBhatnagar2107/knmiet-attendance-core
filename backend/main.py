@@ -13,13 +13,10 @@ from .database import engine
 # Initialize database tables
 models.Base.metadata.create_all(bind=engine)
 
-# 1. CREATE THE APP
 app = FastAPI()
 
-# 2. MOUNT THE FRONTEND
 app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
 
-# 3. UNIVERSAL CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,34 +25,36 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 4. ROOT REDIRECT - Now points to the correct Home Page
 @app.get("/")
 async def root():
     return RedirectResponse(url="/frontend/index.html")
 
-# Admin Key
 ADMIN_SECRET = "KNM@2026!Admin" 
 current_qr_string = ""
 
-# --- STUDENT LOGIC ---
+# --- SECRET DATABASE RESET (RUN THIS ONCE) ---
+@app.get("/reset-database-danger")
+async def reset_db(admin_key: str):
+    if admin_key != ADMIN_SECRET:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    # This safely drops old tables and builds the new ERP ones!
+    models.Base.metadata.drop_all(bind=engine)
+    models.Base.metadata.create_all(bind=engine)
+    return {"message": "Database successfully wiped and upgraded to ERP Schema!"}
 
-# FIXED: Now accepts data as Query Parameters (matches your frontend fetch)
+# --- STUDENT LOGIC ---
 @app.post("/register-student")
-async def register(roll_no: str, name: str, device_id: str, db: Session = Depends(database.get_db)):
+async def register(erp_id: str, roll_no: str, name: str, branch: str, year: int, device_id: str, db: Session = Depends(database.get_db)):
     if len(roll_no) != 13:
         raise HTTPException(status_code=400, detail="Roll number must be exactly 13 digits")
     
-    # Check if already exists
-    existing_student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
-    if existing_student:
+    existing = db.query(models.Student).filter((models.Student.roll_no == roll_no) | (models.Student.erp_id == erp_id)).first()
+    if existing:
         return {"message": "Student already registered!"}
 
     new_student = models.Student(
-        name=name,
-        roll_no=roll_no,
-        registered_device=device_id,
-        is_approved=False,
-        total_lectures=0
+        erp_id=erp_id, name=name, roll_no=roll_no, branch=branch, year=year,
+        registered_device=device_id, is_approved=False, total_lectures=0
     )
     db.add(new_student)
     db.commit()
@@ -67,63 +66,54 @@ async def get_profile(roll_no: str, db: Session = Depends(database.get_db)):
     if not student:
         return {"exists": False}
     return {
-        "exists": True,
-        "name": student.name,
-        "roll_no": student.roll_no,
-        "is_approved": student.is_approved,
-        "lectures": student.total_lectures
+        "exists": True, "erp_id": student.erp_id, "name": student.name, 
+        "roll_no": student.roll_no, "branch": student.branch, "year": student.year,
+        "is_approved": student.is_approved, "lectures": student.total_lectures
     }
 
-# --- ADMIN LOGIC ---
-
+# --- ADMIN & HOD LOGIC ---
 @app.get("/pending-students")
 async def get_pending(admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    return db.query(models.Student).all()
+        raise HTTPException(status_code=401)
+    return db.query(models.Student).filter(models.Student.is_approved == False).all()
 
 @app.post("/approve-student")
 async def approve(roll_no: str, admin_key: str, db: Session = Depends(database.get_db)):
-    if admin_key != ADMIN_SECRET:
-        raise HTTPException(status_code=401)
+    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
     if student:
         student.is_approved = True
         db.commit()
     return {"message": "Student Approved"}
 
-@app.delete("/remove-student")
-async def remove_student(roll_no: str, admin_key: str, db: Session = Depends(database.get_db)):
+@app.post("/add-teacher")
+async def add_teacher(name: str, email: str, pin: str, role: str, department: str, admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
-    student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
-    if student:
-        db.delete(student)
-        db.commit()
-    return {"message": "Deleted"}
+    new_t = models.Teacher(name=name, email=email, pin=pin, role=role, department=department)
+    db.add(new_t)
+    db.commit()
+    return {"message": f"{role} added successfully"}
+
+@app.post("/assign-subject")
+async def assign_subject(name: str, code: str, branch: str, year: int, teacher_id: int, admin_key: str, db: Session = Depends(database.get_db)):
+    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+    new_sub = models.Subject(name=name, code=code, branch=branch, year=year, teacher_id=teacher_id)
+    db.add(new_sub)
+    db.commit()
+    return {"message": "Subject Assigned"}
 
 # --- TEACHER & ATTENDANCE LOGIC ---
+@app.get("/get-teachers")
+async def get_teachers(db: Session = Depends(database.get_db)):
+    return db.query(models.Teacher).all()
 
 @app.get("/verify-teacher-pin")
 async def verify_pin(teacher_id: int, entered_pin: str, db: Session = Depends(database.get_db)):
     teacher = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
     if teacher and teacher.pin == entered_pin:
-        return {"status": "success"}
+        return {"status": "success", "role": teacher.role}
     raise HTTPException(status_code=401, detail="Invalid PIN")
-
-@app.post("/mark-attendance")
-async def mark_attendance(roll_no: str, qr_content: str, db: Session = Depends(database.get_db)):
-    global current_qr_string
-    if qr_content != current_qr_string:
-        raise HTTPException(status_code=400, detail="QR Expired")
-    
-    student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
-    if student and student.is_approved:
-        student.total_lectures += 1
-        new_attendance = models.Attendance(student_roll=roll_no, class_name="CSE22")
-        db.add(new_attendance)
-        db.commit()
-        return {"status": "Success"}
-    raise HTTPException(status_code=403, detail="Not Approved")
 
 @app.get("/generate-qr-string")
 async def generate_qr():
@@ -131,18 +121,30 @@ async def generate_qr():
     current_qr_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
     return {"current_qr_string": current_qr_string}
 
-@app.get("/get-teachers")
-async def get_teachers(db: Session = Depends(database.get_db)):
-    return db.query(models.Teacher).all()
+@app.post("/mark-attendance")
+async def mark_attendance(roll_no: str, qr_content: str, subject_id: int, db: Session = Depends(database.get_db)):
+    global current_qr_string
+    if qr_content != current_qr_string: raise HTTPException(status_code=400, detail="QR Expired")
+    
+    student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
+    if student and student.is_approved:
+        student.total_lectures += 1
+        new_attendance = models.Attendance(student_roll=roll_no, subject_id=subject_id)
+        db.add(new_attendance)
+        db.commit()
+        return {"status": "Success"}
+    raise HTTPException(status_code=403, detail="Not Approved")
 
-@app.post("/add-teacher")
-async def add_teacher(name: str, subject: str, email: str, pin: str, admin_key: str, db: Session = Depends(database.get_db)):
-    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
-    new_t = models.Teacher(name=name, subject=subject, email=email, pin=pin)
-    db.add(new_t)
+# --- EXAM LOGIC ---
+@app.post("/update-marks")
+async def update_marks(roll_no: str, subject_id: int, s1: float, s2: float, put: float, db: Session = Depends(database.get_db)):
+    mark_entry = db.query(models.ExamMarks).filter_by(student_roll=roll_no, subject_id=subject_id).first()
+    if not mark_entry:
+        mark_entry = models.ExamMarks(student_roll=roll_no, subject_id=subject_id)
+        db.add(mark_entry)
+    
+    mark_entry.sessional_1 = s1
+    mark_entry.sessional_2 = s2
+    mark_entry.put_marks = put
     db.commit()
-    return {"message": "Teacher added"}
-
-@app.get("/live-logs")
-async def live_logs(db: Session = Depends(database.get_db)):
-    return db.query(models.Attendance).order_by(models.Attendance.timestamp.desc()).limit(10).all()
+    return {"message": "Marks Updated Successfully"}

@@ -19,7 +19,6 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Forces Chrome Autofill to stay dark and sleek */
         input:-webkit-autofill,
         input:-webkit-autofill:hover,
         input:-webkit-autofill:focus,
@@ -39,19 +38,18 @@
 
 <body class="flex items-center justify-center min-h-screen p-6">
     <div class="glass w-full max-w-md p-8 rounded-[2.5rem] shadow-2xl border-t-4 border-blue-500">
-
         <div class="flex justify-center mb-6 bg-white p-2 rounded-xl inline-block mx-auto shadow-lg">
             <img src="knmiet-logo1494x375.webp" class="h-8 object-contain" alt="KNMIET Logo">
         </div>
 
         <h1 class="text-2xl font-black mb-1 text-center text-blue-400">Student ERP Portal</h1>
-        <p class="text-slate-500 text-center text-[10px] mb-6 uppercase tracking-widest">Master Identity Registration
-        </p>
+        <p class="text-slate-500 text-center text-[10px] mb-6 uppercase tracking-widest font-bold">Identity Verification
+            & Entry</p>
 
         <div class="space-y-3">
-            <input type="text" id="regName" placeholder="Full Name"
+            <input type="text" id="regName" placeholder="Enter Full Name"
                 class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none focus:border-blue-500 text-white">
-            <input type="text" id="regErp" placeholder="ERP ID (e.g. KNMIET123)"
+            <input type="text" id="regErp" placeholder="Enter ERP ID"
                 class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none focus:border-blue-500 text-white">
             <input type="text" id="regRoll" placeholder="13-Digit Roll Number"
                 class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none focus:border-blue-500 font-mono text-blue-300">
@@ -74,10 +72,10 @@
             </div>
 
             <button onclick="register()"
-                class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold mt-4 shadow-lg transition-all text-white">SUBMIT
-                REGISTRATION</button>
+                class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold mt-4 shadow-lg transition-all text-white uppercase tracking-widest">Verify
+                & Enter Dashboard</button>
         </div>
-        <p id="msg" class="mt-4 text-center text-xs font-bold text-slate-400"></p>
+        <p id="msg" class="mt-4 text-center text-xs font-bold leading-relaxed h-10 px-4"></p>
     </div>
 
     <script>
@@ -94,33 +92,33 @@
 
             if (!name || !erp || !roll || !branch || !year) {
                 msg.style.color = "#ef4444";
-                return msg.innerText = "All fields are required!";
+                return msg.innerText = "Error: All fields are mandatory!";
             }
             if (roll.length !== 13) {
                 msg.style.color = "#ef4444";
-                return msg.innerText = "Roll number must be exactly 13 digits!";
+                return msg.innerText = "Error: Roll number must be exactly 13 digits!";
             }
 
             msg.style.color = "#fbbf24";
-            msg.innerText = "Processing Details...";
+            msg.innerText = "Verifying Credentials with Secure Server...";
 
             try {
                 const res = await fetch(`https://knmiet-attendance-core.onrender.com/register-student?erp_id=${erp}&roll_no=${roll}&name=${name}&branch=${branch}&year=${year}&device_id=${devID}`, { method: 'POST' });
                 const data = await res.json();
 
-                // NEW LOGIC: Checks for the specific "success" status from our new backend
                 if (res.ok && data.status === "success") {
                     msg.style.color = "#4ade80";
-                    msg.innerText = data.message; // Will display either "Registration sent" or "Welcome back!"
+                    msg.innerText = data.message;
                     localStorage.setItem('student_roll', roll);
-                    setTimeout(() => window.location.href = "student.html", 1500);
+                    setTimeout(() => window.location.href = "student.html", 1200);
                 } else {
+                    // This handles the Credential Mismatch or Stolen ERP errors
                     msg.style.color = "#ef4444";
-                    msg.innerText = data.detail || data.message || "Registration Error";
+                    msg.innerText = data.detail || data.message || "Security Error: Details do not match existing record.";
                 }
             } catch (err) {
                 msg.style.color = "#ef4444";
-                msg.innerText = "Connection Failed!";
+                msg.innerText = "Connection Failed! Check Internet.";
             }
         }
     </script>

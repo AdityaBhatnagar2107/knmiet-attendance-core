@@ -148,3 +148,39 @@ async def update_marks(roll_no: str, subject_id: int, s1: float, s2: float, put:
     mark_entry.put_marks = put
     db.commit()
     return {"message": "Marks Updated Successfully"}
+
+# --- PHASE 4.5: FACULTY ERP ROUTES ---
+@app.get("/teacher-subjects")
+async def get_teacher_subjects(teacher_id: int, db: Session = Depends(database.get_db)):
+    # Safely fetches ONLY the subjects assigned to the logged-in teacher
+    subjects = db.query(models.Subject).filter(models.Subject.teacher_id == teacher_id).all()
+    return subjects
+
+@app.get("/subject-roster")
+async def get_subject_roster(subject_id: int, db: Session = Depends(database.get_db)):
+    # 1. Find the specific subject
+    subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+    if not subject:
+        raise HTTPException(status_code=404, detail="Subject not found")
+        
+    # 2. Find all approved students in that specific branch and year
+    students = db.query(models.Student).filter(
+        models.Student.branch == subject.branch,
+        models.Student.year == subject.year,
+        models.Student.is_approved == True
+    ).all()
+    
+    # 3. Fetch their exam marks (if any exist yet)
+    roster = []
+    for s in students:
+        marks = db.query(models.ExamMarks).filter_by(student_roll=s.roll_no, subject_id=subject.id).first()
+        roster.append({
+            "name": s.name,
+            "roll_no": s.roll_no,
+            "erp_id": s.erp_id,
+            "s1": marks.sessional_1 if marks else 0,
+            "s2": marks.sessional_2 if marks else 0,
+            "put": marks.put_marks if marks else 0
+        })
+        
+    return {"subject_name": subject.name, "roster": roster}

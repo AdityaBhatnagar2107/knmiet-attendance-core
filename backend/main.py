@@ -3,7 +3,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import func  # NEW: Required for Phase 6 math calculations
+from sqlalchemy import func, Column, Integer, String, Text  # Added columns for Phase 7
 from datetime import datetime
 import random, string
 import os
@@ -41,6 +41,11 @@ async def reset_db(admin_key: str):
     # This safely drops old tables and builds the new ERP ones!
     models.Base.metadata.drop_all(bind=engine)
     models.Base.metadata.create_all(bind=engine)
+    
+    # Also reset the Timetable table safely
+    Timetable.__table__.drop(bind=engine, checkfirst=True)
+    Timetable.__table__.create(bind=engine, checkfirst=True)
+    
     return {"message": "Database successfully wiped and upgraded to ERP Schema!"}
 
 # --- STUDENT LOGIC ---
@@ -50,8 +55,13 @@ async def register(erp_id: str, roll_no: str, name: str, branch: str, year: int,
         raise HTTPException(status_code=400, detail="Roll number must be exactly 13 digits")
     
     existing = db.query(models.Student).filter((models.Student.roll_no == roll_no) | (models.Student.erp_id == erp_id)).first()
+    
     if existing:
-        return {"message": "Student already registered!"}
+        # SMART LOGIN: If they perfectly match their existing data, log them back in!
+        if existing.roll_no == roll_no and existing.erp_id == erp_id and existing.name.strip().lower() == name.strip().lower():
+            return {"status": "success", "message": "Welcome back! Restoring your session..."}
+        else:
+            raise HTTPException(status_code=403, detail="Account exists, but details do not match.")
 
     new_student = models.Student(
         erp_id=erp_id, name=name, roll_no=roll_no, branch=branch, year=year,
@@ -59,7 +69,7 @@ async def register(erp_id: str, roll_no: str, name: str, branch: str, year: int,
     )
     db.add(new_student)
     db.commit()
-    return {"message": "Success! Registration sent to Admin for approval."}
+    return {"status": "success", "message": "Success! Registration sent to Admin for approval."}
 
 @app.get("/student-profile")
 async def get_profile(roll_no: str, db: Session = Depends(database.get_db)):
@@ -159,19 +169,16 @@ async def get_teacher_subjects(teacher_id: int, db: Session = Depends(database.g
 
 @app.get("/subject-roster")
 async def get_subject_roster(subject_id: int, db: Session = Depends(database.get_db)):
-    # 1. Find the specific subject
     subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
         
-    # 2. Find all approved students in that specific branch and year
     students = db.query(models.Student).filter(
         models.Student.branch == subject.branch,
         models.Student.year == subject.year,
         models.Student.is_approved == True
     ).all()
     
-    # 3. Fetch their exam marks (if any exist yet)
     roster = []
     for s in students:
         marks = db.query(models.ExamMarks).filter_by(student_roll=s.roll_no, subject_id=subject.id).first()
@@ -193,7 +200,6 @@ async def get_student_erp_data(roll_no: str, db: Session = Depends(database.get_
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
 
-    # Find all subjects for this student's specific branch and year
     subjects = db.query(models.Subject).filter(
         models.Subject.branch == student.branch,
         models.Subject.year == student.year
@@ -204,21 +210,18 @@ async def get_student_erp_data(roll_no: str, db: Session = Depends(database.get_
     total_classes_overall = 0
 
     for sub in subjects:
-        # 1. Count student's attendance for this subject
         attended = db.query(models.Attendance).filter(
             models.Attendance.student_roll == roll_no,
             models.Attendance.subject_id == sub.id
         ).count()
         
-        # 2. Find total classes held (heuristic: max attendance of any student in this class)
         max_att = db.query(func.count(models.Attendance.id)).filter(
             models.Attendance.subject_id == sub.id
         ).group_by(models.Attendance.student_roll).order_by(func.count(models.Attendance.id).desc()).first()
         
         total_held = max_att[0] if max_att else 0
-        if total_held < attended: total_held = attended # Sanity check
+        if total_held < attended: total_held = attended 
 
-        # 3. Fetch their Exam Marks
         marks = db.query(models.ExamMarks).filter_by(student_roll=roll_no, subject_id=sub.id).first()
         
         subject_data.append({
@@ -238,3 +241,34 @@ async def get_student_erp_data(roll_no: str, db: Session = Depends(database.get_
         "overall_total": total_classes_overall,
         "subjects": subject_data
     }
+
+# --- PHASE 7: MASTER TIMETABLE ---
+class Timetable(database.Base):
+    __tablename__ = "master_timetables"
+    id = Column(Integer, primary_key=True, index=True)
+    branch_year = Column(String, unique=True, index=True) # e.g., "CSE-2"
+    grid_data = Column(Text) # Saves the entire HTML grid as a JSON string
+
+# Safely creates ONLY this new table without touching your existing students/teachers!
+Timetable.__table__.create(bind=engine, checkfirst=True)
+
+@app.post("/save-timetable")
+async def save_timetable(branch_year: str, grid_data: str, admin_key: str, db: Session = Depends(database.get_db)):
+    if admin_key != ADMIN_SECRET: 
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
+    tt = db.query(Timetable).filter_by(branch_year=branch_year).first()
+    if not tt:
+        tt = Timetable(branch_year=branch_year, grid_data=grid_data)
+        db.add(tt)
+    else:
+        tt.grid_data = grid_data
+    db.commit()
+    return {"status": "success", "message": "Timetable Published"}
+
+@app.get("/get-timetable")
+async def get_timetable(branch_year: str, db: Session = Depends(database.get_db)):
+    tt = db.query(Timetable).filter_by(branch_year=branch_year).first()
+    if not tt:
+        return {"exists": False}
+    return {"exists": True, "grid_data": tt.grid_data}

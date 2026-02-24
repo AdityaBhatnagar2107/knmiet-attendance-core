@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Timetable | KNMIET</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: #020617;
+            color: white;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tt-grid {
+            display: grid;
+            grid-template-columns: 120px repeat(8, 1fr);
+            gap: 4px;
+        }
+
+        .tt-cell {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .tt-header {
+            background: #1e293b;
+            font-weight: bold;
+            color: #94a3b8;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+
+        .break-cell {
+            background: #334155 !important;
+        }
+
+        .break-cell input {
+            color: #fbbf24 !important;
+            font-weight: bold;
+        }
+
+        input.cell-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            text-align: center;
+            color: #e2e8f0;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        input.cell-input:focus {
+            background: #1e293b;
+            border-radius: 4px;
+            padding: 4px;
+            color: #60a5fa;
+        }
+    </style>
+</head>
+
+<body class="p-6">
+    <div class="max-w-7xl mx-auto space-y-6">
+
+        <div
+            class="glass p-6 rounded-3xl flex flex-col md:flex-row justify-between items-center border-t-4 border-blue-500 gap-4">
+            <div class="flex items-center gap-4">
+                <img src="knmiet-logo.webp" class="h-10 bg-white p-2 rounded-xl shadow-lg"
+                    onerror="this.src='knmiet-logo1494x375.webp'">
+                <div>
+                    <h1 class="text-2xl font-black text-white">Master Timetable</h1>
+                    <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest">HOD Control Interface</p>
+                </div>
+            </div>
+            <select id="branchYear"
+                class="bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none focus:border-blue-500 text-sm font-bold w-full md:w-auto text-white"
+                onchange="loadTimetable()">
+                <option value="CSE-1">CSE - 1st Year</option>
+                <option value="CSE-2" selected>CSE - 2nd Year</option>
+                <option value="CSE-3">CSE - 3rd Year</option>
+                <option value="CSE-4">CSE - 4th Year</option>
+                <option value="IT-1">IT - 1st Year</option>
+            </select>
+        </div>
+
+        <div class="glass p-6 rounded-3xl overflow-x-auto shadow-2xl">
+            <div id="gridContainer" class="min-w-[1000px]">
+            </div>
+
+            <div class="mt-6 flex justify-between items-center border-t border-slate-800 pt-6">
+                <p class="text-xs text-slate-500 italic">* Faculty/Students view this live. Enter Admin Key to publish
+                    changes.</p>
+                <div class="flex gap-2">
+                    <input type="password" id="adminKey" placeholder="HOD Admin Key"
+                        class="bg-slate-900 border border-slate-700 p-3 rounded-xl text-sm outline-none text-center focus:border-blue-500 text-white">
+                    <button onclick="saveTimetable()" id="saveBtn"
+                        class="bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-xl font-black text-sm transition-all shadow-lg text-white tracking-wider">PUBLISH</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = "https://knmiet-attendance-core.onrender.com";
+        const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+        // Dynamically draws the grid
+        function buildGrid(data = null) {
+            let html = `<div class="tt-grid mb-2">
+                <div class="tt-cell tt-header flex items-center justify-center">DAY</div>
+                ${[1, 2, 3, 4, 5, 6, 7, 8].map(s => `<div class="tt-cell tt-header">Slot ${s}</div>`).join('')}
+            </div>`;
+
+            days.forEach((day, dIdx) => {
+                html += `<div class="tt-grid mb-2">
+                    <div class="tt-cell tt-header flex items-center justify-center text-slate-300">${day}</div>`;
+
+                for (let s = 1; s <= 8; s++) {
+                    let cellId = `c_${dIdx}_${s}`;
+                    // Automatically populates Slot 5 with Lunch unless overridden
+                    let val = data ? (data[cellId] || "") : (s === 5 ? "LUNCH BREAK" : "");
+                    let isBreak = s === 5 ? "break-cell" : "";
+                    html += `<div class="tt-cell ${isBreak}"><input type="text" id="${cellId}" class="cell-input" value="${val}" placeholder="Free"></div>`;
+                }
+                html += `</div>`;
+            });
+            document.getElementById('gridContainer').innerHTML = html;
+        }
+
+        // Fetches from Postgres Database
+        async function loadTimetable() {
+            const by = document.getElementById('branchYear').value;
+            try {
+                const res = await fetch(`${API}/get-timetable?branch_year=${by}`);
+                const data = await res.json();
+                if (data.exists) {
+                    buildGrid(JSON.parse(data.grid_data));
+                } else {
+                    buildGrid(); // Generate empty grid
+                }
+            } catch (e) { buildGrid(); }
+        }
+
+        // Saves to Postgres Database
+        async function saveTimetable() {
+            const by = document.getElementById('branchYear').value;
+            const key = document.getElementById('adminKey').value;
+            if (!key) return alert("Admin Key required to publish!");
+
+            const btn = document.getElementById('saveBtn');
+            btn.innerText = "SAVING...";
+
+            let gridData = {};
+            days.forEach((day, dIdx) => {
+                for (let s = 1; s <= 8; s++) {
+                    let id = `c_${dIdx}_${s}`;
+                    gridData[id] = document.getElementById(id).value;
+                }
+            });
+
+            try {
+                const res = await fetch(`${API}/save-timetable?branch_year=${by}&grid_data=${encodeURIComponent(JSON.stringify(gridData))}&admin_key=${key}`, { method: 'POST' });
+                if (res.ok) {
+                    btn.classList.replace('bg-blue-600', 'bg-emerald-500');
+                    btn.innerText = "PUBLISHED!";
+                    setTimeout(() => { btn.classList.replace('bg-emerald-500', 'bg-blue-600'); btn.innerText = "PUBLISH"; }, 3000);
+                } else {
+                    alert("Access Denied: Invalid Admin Key.");
+                    btn.innerText = "PUBLISH";
+                }
+            } catch (e) {
+                alert("Network Error");
+                btn.innerText = "PUBLISH";
+            }
+        }
+
+        buildGrid();
+        loadTimetable();
+    </script>
+</body>
+
+</html>

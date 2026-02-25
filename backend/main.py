@@ -9,7 +9,7 @@ import random, string
 from . import models, database
 from .database import engine
 
-# 1. Database Initialization
+# 1. Initialize ALL database tables from models.py safely
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -40,8 +40,6 @@ async def root():
 async def reset_db(admin_key: str):
     if admin_key != ADMIN_SECRET: 
         raise HTTPException(status_code=401, detail="Unauthorized")
-    
-    # Safely wipe and rebuild the entire database using models.py
     models.Base.metadata.drop_all(bind=engine)
     models.Base.metadata.create_all(bind=engine)
     return {"message": "Database successfully wiped and upgraded to ERP Schema!"}
@@ -57,7 +55,6 @@ async def register(erp_id: str, roll_no: str, name: str, branch: str, year: int,
     existing = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
     
     if existing:
-        # Smart Login Check
         if existing.name.strip().lower() == name.strip().lower() and existing.erp_id.strip() == erp_id.strip():
             if existing.registered_device == "PENDING_RESET":
                 existing.registered_device = device_id
@@ -65,7 +62,6 @@ async def register(erp_id: str, roll_no: str, name: str, branch: str, year: int,
             return {"status": "success", "message": "Welcome back! Session restored."}
         raise HTTPException(status_code=403, detail="Credential Mismatch! Name or ERP ID is incorrect.")
     
-    # New Registration
     new_student = models.Student(
         erp_id=erp_id, name=name, roll_no=roll_no, branch=branch, year=year, 
         registered_device=device_id, is_approved=False, total_lectures=0
@@ -147,13 +143,10 @@ async def assign_subject(name: str, code: str, branch: str, year: int, teacher_i
 @app.get("/all-students-analytics")
 async def all_analytics(admin_key: str, teacher_id: int = None, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
-    
-    # Role-based filtering
     if teacher_id:
         t = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
         if t and t.role == "Coordinator": 
             return db.query(models.Student).filter(models.Student.branch == t.department).all()
-            
     return db.query(models.Student).all()
 
 @app.post("/reset-student-device")
@@ -236,7 +229,6 @@ async def get_subject_roster(subject_id: int, db: Session = Depends(database.get
         })
     return {"subject_name": subject.name, "roster": roster}
 
-# MUST HAVE: Exam Marks Updater
 @app.post("/update-marks")
 async def update_marks(roll_no: str, subject_id: int, s1: float, s2: float, put: float, db: Session = Depends(database.get_db)):
     mark_entry = db.query(models.ExamMarks).filter_by(student_roll=roll_no, subject_id=subject_id).first()

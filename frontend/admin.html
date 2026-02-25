@@ -40,12 +40,15 @@
     <div id="loginGate"
         class="max-w-md mx-auto mt-16 p-10 glass rounded-[2.5rem] text-center border-t-4 border-blue-600">
         <div class="bg-white p-4 rounded-2xl mb-8 inline-block shadow-lg">
-            <img src="knmiet-logo1494x375.webp" class="h-10 object-contain" alt="KNMIET Logo">
+            <img src="knmiet-logo1494x375.webp" class="h-10 object-contain" alt="KNMIET Logo"
+                onerror="this.src='knmiet-logo.webp'">
         </div>
         <h2 class="text-2xl font-bold text-blue-400 mb-1">ERP Control Center</h2>
         <p class="text-[10px] text-slate-500 mb-6 uppercase tracking-widest font-bold">Secure Access</p>
-        <input type="password" id="adminPass" placeholder="Enter Admin Key"
+
+        <input type="password" id="adminPass" placeholder="Enter Admin Key" onkeypress="handleEnter(event)"
             class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl mb-4 outline-none text-center focus:border-blue-500 text-white">
+
         <button onclick="verify()"
             class="w-full bg-blue-600 py-4 rounded-xl font-bold hover:bg-blue-500 transition-all shadow-lg text-white uppercase tracking-widest">Unlock
             Dashboard</button>
@@ -56,8 +59,8 @@
         <div
             class="flex flex-col lg:flex-row justify-between items-center glass p-6 rounded-3xl border-b-4 border-blue-600 gap-6">
             <div class="flex items-center gap-6">
-                <div class="bg-white p-2 rounded-lg"><img src="knmiet-logo1494x375.webp" class="h-8 object-contain">
-                </div>
+                <div class="bg-white p-2 rounded-lg"><img src="knmiet-logo1494x375.webp" class="h-8 object-contain"
+                        onerror="this.src='knmiet-logo.webp'"></div>
                 <div>
                     <h1 class="text-2xl font-black text-white leading-none">KNMIET ERP Admin</h1>
                     <p class="text-xs text-blue-400 font-bold uppercase tracking-widest mt-1">HOD System Management</p>
@@ -81,6 +84,7 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
             <div class="glass p-6 rounded-3xl border-l-4 border-yellow-500 h-full">
                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Pending Student Approvals
                 </h3>
@@ -91,15 +95,15 @@
                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Register Staff</h3>
                 <div class="space-y-3">
                     <input type="text" id="tName" placeholder="Full Name"
-                        class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none text-white">
+                        class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none text-white focus:border-emerald-500">
                     <input type="text" id="tEmail" placeholder="Email (@knmiet.edu)"
-                        class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none text-white">
+                        class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none text-white focus:border-emerald-500">
                     <div class="flex gap-2">
                         <select id="tRole"
                             class="w-1/2 bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none text-emerald-400 font-bold">
                             <option value="Faculty">Faculty</option>
-                            <option value="HOD">HOD</option>
                             <option value="Coordinator">Coordinator</option>
+                            <option value="HOD">HOD</option>
                         </select>
                         <select id="tDept"
                             class="w-1/2 bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none text-white">
@@ -108,7 +112,7 @@
                         </select>
                     </div>
                     <input type="text" id="tPin" placeholder="Set 4-Digit PIN"
-                        class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm text-center font-mono outline-none text-white">
+                        class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm text-center font-mono outline-none text-white focus:border-emerald-500">
                     <button onclick="addTeacher()"
                         class="w-full bg-emerald-600 py-3 rounded-xl font-bold hover:bg-emerald-500 transition-all text-sm text-white">CREATE
                         PROFILE</button>
@@ -121,9 +125,9 @@
                     <select id="sTeacher"
                         class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none text-white"></select>
                     <input type="text" id="sName" placeholder="Subject Name"
-                        class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none text-white">
+                        class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none text-white focus:border-purple-500">
                     <input type="text" id="sCode" placeholder="Subject Code"
-                        class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none font-mono text-white">
+                        class="w-full bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none font-mono text-white focus:border-purple-500">
                     <div class="flex gap-2">
                         <select id="sBranch"
                             class="w-1/2 bg-slate-900/80 p-3 rounded-xl border border-slate-700 text-sm outline-none text-white">
@@ -150,10 +154,23 @@
         let currentKey = "";
         const API = "https://knmiet-attendance-core.onrender.com";
 
+        // Allows pressing "Enter" to login
+        function handleEnter(e) {
+            if (e.key === "Enter") {
+                verify();
+            }
+        }
+
         async function verify() {
-            currentKey = document.getElementById('adminPass').value.trim();
-            if (currentKey !== "KNM@2026!Admin") return alert("Access Denied.");
-            localStorage.setItem('admin_key', currentKey); // Saves for sub-pages
+            const rawInput = document.getElementById('adminPass').value;
+            currentKey = rawInput.trim(); // Strips hidden spaces
+
+            if (currentKey !== "KNM@2026!Admin") {
+                return alert("Access Denied: Invalid Key.");
+            }
+
+            // Save to browser session so Analytics and Timetable pages work
+            localStorage.setItem('admin_key', currentKey);
             loadData();
         }
 
@@ -162,7 +179,7 @@
                 const sRes = await fetch(`${API}/pending-students?admin_key=${currentKey}&t=${Date.now()}`);
                 const tRes = await fetch(`${API}/get-teachers?t=${Date.now()}`);
 
-                if (!sRes.ok) throw new Error("Verification Failed");
+                if (!sRes.ok) throw new Error("Server rejected verification");
 
                 const students = await sRes.json();
                 const teachers = await tRes.json();
@@ -170,6 +187,7 @@
                 document.getElementById('loginGate').classList.add('hidden');
                 document.getElementById('dashboard').classList.remove('hidden');
 
+                // Render Pending Approvals
                 const studentDiv = document.getElementById('pendingList');
                 studentDiv.innerHTML = students.length ? students.map(s => `
                     <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
@@ -178,38 +196,56 @@
                         <button onclick="approve('${s.roll_no}')" class="w-full bg-blue-600 hover:bg-blue-500 py-2 rounded-lg text-xs font-bold text-white transition-all shadow-md">APPROVE</button>
                     </div>`).join('') : '<p class="text-xs text-slate-500 italic text-center py-4">No pending approvals.</p>';
 
+                // Render Teachers Dropdown
                 const teacherSelect = document.getElementById('sTeacher');
                 teacherSelect.innerHTML = '<option value="" disabled selected>Select Faculty Member...</option>' +
                     teachers.map(t => `<option value="${t.id}">${t.name} (${t.role})</option>`).join('');
 
-            } catch (e) { alert("Connection Error. Check Admin Key."); }
+            } catch (e) {
+                alert("Connection Error. Is your Render server live?");
+                console.error(e);
+            }
         }
 
         async function approve(roll) {
             await fetch(`${API}/approve-student?roll_no=${roll}&admin_key=${currentKey}`, { method: 'POST' });
-            loadData();
+            loadData(); // Reload list
         }
 
         async function addTeacher() {
-            const n = document.getElementById('tName').value;
-            const e = document.getElementById('tEmail').value;
+            const n = document.getElementById('tName').value.trim();
+            const e = document.getElementById('tEmail').value.trim();
             const r = document.getElementById('tRole').value;
             const d = document.getElementById('tDept').value;
-            const p = document.getElementById('tPin').value;
-            if (!n || !e || !p) return alert("Fill all fields");
+            const p = document.getElementById('tPin').value.trim();
+
+            if (!n || !e || !p) return alert("Please fill all fields");
+
             const res = await fetch(`${API}/add-teacher?name=${n}&email=${e}&pin=${p}&role=${r}&department=${d}&admin_key=${currentKey}`, { method: 'POST' });
-            if (res.ok) { alert(`${r} Created!`); loadData(); }
+            if (res.ok) {
+                alert(`${r} Profile Created!`);
+                document.getElementById('tName').value = "";
+                document.getElementById('tEmail').value = "";
+                document.getElementById('tPin').value = "";
+                loadData();
+            }
         }
 
         async function assignSubject() {
             const tid = document.getElementById('sTeacher').value;
-            const name = document.getElementById('sName').value;
-            const code = document.getElementById('sCode').value;
+            const name = document.getElementById('sName').value.trim();
+            const code = document.getElementById('sCode').value.trim();
             const branch = document.getElementById('sBranch').value;
             const year = document.getElementById('sYear').value;
-            if (!tid || !name || !code) return alert("Fill all fields.");
+
+            if (!tid || !name || !code) return alert("Select faculty and fill subject details.");
+
             const res = await fetch(`${API}/assign-subject?name=${name}&code=${code}&branch=${branch}&year=${year}&teacher_id=${tid}&admin_key=${currentKey}`, { method: 'POST' });
-            if (res.ok) alert(`Subject ${code} Assigned!`);
+            if (res.ok) {
+                alert(`Subject ${code} Assigned!`);
+                document.getElementById('sName').value = "";
+                document.getElementById('sCode').value = "";
+            }
         }
     </script>
 </body>

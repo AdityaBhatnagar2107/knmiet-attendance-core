@@ -43,6 +43,11 @@
         .feed-item {
             animation: slideIn 0.3s ease forwards;
         }
+
+        /* Smooth transition for the green flash effect */
+        .mark-input {
+            transition: background-color 0.4s ease, color 0.4s ease;
+        }
     </style>
 </head>
 
@@ -92,7 +97,6 @@
                             class="w-16 h-16 rounded-full border-4 border-emerald-500 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.5)]">
                             <span id="timerText" class="text-2xl font-black text-emerald-400 font-mono">5</span>
                         </div>
-
                         <div class="p-4 bg-white rounded-2xl shadow-xl flex items-center justify-center"
                             style="width: 212px; height: 212px;">
                             <div id="qrcode"></div>
@@ -142,6 +146,7 @@
         let qrInterval = null;
         let countdownInterval = null;
         let liveFeedInterval = null;
+        let qrcodeInstance = null;
 
         async function loadTeachers() {
             const res = await fetch(`${API}/get-teachers`);
@@ -198,14 +203,12 @@
 
                 const subSelect = document.getElementById('subjectSelect');
                 let subText = subSelect.options[subSelect.selectedIndex].text;
-
-                // CRITICAL FIX: Strip the em-dash and weird unicode characters that crash the QR library
                 subText = subText.replace(/—/g, "-").replace(/[^\x00-\x7F]/g, "");
 
                 const payload = `${data.current_qr_string}|${subId}|${subText}`;
 
                 const qrElement = document.getElementById('qrcode');
-                qrElement.innerHTML = ""; // Hard clear the old image
+                qrElement.innerHTML = "";
 
                 new QRCode(qrElement, {
                     text: payload,
@@ -213,7 +216,7 @@
                     height: 180,
                     colorDark: "#000000",
                     colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.L // Low density for ultra-fast scanning
+                    correctLevel: QRCode.CorrectLevel.L
                 });
             } catch (e) { console.error("QR Refresh Failed", e); }
         }
@@ -255,19 +258,49 @@
             const res = await fetch(`${API}/subject-roster?subject_id=${subId}`);
             const data = await res.json();
             document.getElementById('rosterHeader').classList.remove('hidden');
+
+            // NOTICE THE NEW "this" PARAMETER IN updateM()
             document.getElementById('rosterContainer').innerHTML = data.roster.map(s => `
                 <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 grid grid-cols-4 items-center gap-2">
                     <div class="col-span-1 truncate"><p class="font-bold text-[11px] text-white">${s.name}</p><p class="text-[8px] text-slate-500 font-mono">${s.roll_no.slice(-5)}</p></div>
-                    <input type="number" class="bg-slate-950 border border-slate-700 text-center text-xs p-2 rounded-lg text-emerald-400 focus:border-purple-500 outline-none" value="${s.s1}" onchange="updateM('${s.roll_no}', ${subId}, this.value, 's1')">
-                    <input type="number" class="bg-slate-950 border border-slate-700 text-center text-xs p-2 rounded-lg text-emerald-400 focus:border-purple-500 outline-none" value="${s.s2}" onchange="updateM('${s.roll_no}', ${subId}, this.value, 's2')">
-                    <input type="number" class="bg-slate-950 border border-slate-700 text-center text-xs p-2 rounded-lg text-emerald-400 focus:border-purple-500 outline-none" value="${s.put}" onchange="updateM('${s.roll_no}', ${subId}, this.value, 'put')">
+                    <input type="number" class="mark-input bg-slate-950 border border-slate-700 text-center text-xs p-2 rounded-lg text-emerald-400 focus:border-purple-500 outline-none" value="${s.s1}" onchange="updateM('${s.roll_no}', ${subId}, this.value, 's1', this)">
+                    <input type="number" class="mark-input bg-slate-950 border border-slate-700 text-center text-xs p-2 rounded-lg text-emerald-400 focus:border-purple-500 outline-none" value="${s.s2}" onchange="updateM('${s.roll_no}', ${subId}, this.value, 's2', this)">
+                    <input type="number" class="mark-input bg-slate-950 border border-slate-700 text-center text-xs p-2 rounded-lg text-emerald-400 focus:border-purple-500 outline-none" value="${s.put}" onchange="updateM('${s.roll_no}', ${subId}, this.value, 'put', this)">
                 </div>
             `).join('');
         }
 
-        async function updateM(roll, subId, val, type) {
-            let s1 = type === 's1' ? val : 0; let s2 = type === 's2' ? val : 0; let put = type === 'put' ? val : 0;
-            await fetch(`${API}/update-marks?roll_no=${roll}&subject_id=${subId}&s1=${s1}&s2=${s2}&put=${put}`, { method: 'POST' });
+        // --- NEW VISUAL FEEDBACK LOGIC ---
+        async function updateM(roll, subId, val, type, inputElement) {
+            let s1 = type === 's1' ? val : 0;
+            let s2 = type === 's2' ? val : 0;
+            let put = type === 'put' ? val : 0;
+
+            // Turn box gray while saving
+            inputElement.style.backgroundColor = '#334155';
+
+            try {
+                const res = await fetch(`${API}/update-marks?roll_no=${roll}&subject_id=${subId}&s1=${s1}&s2=${s2}&put=${put}`, { method: 'POST' });
+
+                if (res.ok) {
+                    // Turn box GREEN if successful!
+                    inputElement.style.backgroundColor = '#065f46'; // emerald-800
+                    inputElement.style.color = '#ffffff';
+
+                    // Reset back to normal after 1 second
+                    setTimeout(() => {
+                        inputElement.style.backgroundColor = '';
+                        inputElement.style.color = '';
+                    }, 1000);
+                } else {
+                    // Turn red if failed
+                    inputElement.style.backgroundColor = '#7f1d1d'; // red-900
+                }
+            } catch (e) {
+                // Turn red on network crash
+                inputElement.style.backgroundColor = '#7f1d1d';
+                console.error(e);
+            }
         }
 
         loadTeachers();

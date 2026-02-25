@@ -38,40 +38,40 @@
                 class="h-10 object-contain" alt="Logo"></div>
         <div class="w-12 h-12 border-4 border-slate-800 border-t-blue-500 rounded-full animate-spin mb-6"></div>
         <h2 class="text-lg font-black tracking-widest uppercase">Securing Connection</h2>
-        <p id="loaderText" class="text-xs text-blue-400 font-bold uppercase tracking-widest mt-2">Connecting to KNMIET
-            Hub...</p>
+        <p id="loaderText" class="text-xs text-blue-400 font-bold uppercase mt-2">Connecting to KNMIET Hub...</p>
     </div>
 
-    <div id="pendingView" class="hidden mt-20 glass p-10 rounded-[3rem] text-center border-t-4 border-yellow-500">
+    <div id="pendingView"
+        class="hidden mt-20 glass p-10 rounded-[3rem] text-center border-t-4 border-yellow-500 shadow-2xl">
         <h2 class="text-2xl font-bold text-yellow-500">HOD Approval Pending</h2>
-        <p class="text-xs text-slate-400 mt-2 italic">You will gain access once the HOD verifies your registration in
-            the Admin Panel.</p>
+        <p class="text-xs text-slate-400 mt-2 italic">You will gain access once verified in the Admin Panel.</p>
         <button onclick="location.reload()"
-            class="mt-6 bg-yellow-600 px-8 py-3 rounded-xl font-bold uppercase text-xs tracking-widest">Refresh
+            class="mt-6 bg-yellow-600 px-8 py-3 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-yellow-500 transition-all">Refresh
             Status</button>
     </div>
 
     <div id="approvedView" class="hidden w-full max-w-6xl space-y-8 animate-in fade-in duration-500">
         <div class="glass p-8 rounded-[2.5rem] border-l-4 border-blue-500 flex justify-between items-center shadow-2xl">
             <div>
-                <h1 id="sName" class="text-2xl font-black">Student</h1>
+                <h1 id="sName" class="text-2xl font-black leading-tight">Student</h1>
                 <p id="sBranch" class="text-blue-400 text-xs font-bold uppercase tracking-widest mt-1"></p>
             </div>
             <div class="text-right">
-                <p class="text-[10px] text-slate-500 font-bold">Attendance Scans</p>
+                <p class="text-[10px] text-slate-500 font-bold uppercase">Total Scans</p>
                 <p id="totalLecs" class="text-3xl font-black text-emerald-400">0</p>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-1 space-y-4">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">Subject Performance</h3>
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">My Performance</h3>
                 <div id="subjectList" class="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scroll"></div>
             </div>
 
             <div class="lg:col-span-2 space-y-8">
                 <div class="glass p-6 rounded-[2.5rem] border-t-4 border-slate-800 shadow-2xl">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Live Scanner</h3>
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">QR Attendance Scanner
+                    </h3>
                     <div id="reader" class="rounded-[2rem] overflow-hidden border-2 border-slate-800"></div>
                     <p id="scanMsg" class="text-center font-bold text-xs uppercase tracking-widest text-slate-500 mt-4">
                         Align QR to Mark Attendance</p>
@@ -94,8 +94,8 @@
         async function checkStatus() {
             if (!roll) { window.location.href = "register.html"; return; }
             try {
-                // THE SYNC FIX: We add nocache timestamp to bypass old browser data
-                const res = await fetch(`${API}/student-profile?roll_no=${roll}&t=${Date.now()}`);
+                // THE CACHE-BUSTER: Forces fresh status check
+                const res = await fetch(`${API}/student-profile?roll_no=${roll}&nocache=${Date.now()}`);
                 const data = await res.json();
 
                 const l = document.getElementById('globalLoader');
@@ -103,6 +103,7 @@
 
                 if (data.is_approved) {
                     document.getElementById('approvedView').classList.remove('hidden');
+                    document.getElementById('pendingView').classList.add('hidden');
                     document.getElementById('sName').innerText = data.name;
                     document.getElementById('sBranch').innerText = `${data.branch} - Yr ${data.year}`;
                     document.getElementById('totalLecs').innerText = data.total_lectures;
@@ -110,7 +111,7 @@
                     startScanner();
                     loadTimetable(`${data.branch}-${data.year}`);
                 } else document.getElementById('pendingView').classList.remove('hidden');
-            } catch (e) { document.getElementById('loaderText').innerText = "RETRYING..."; setTimeout(() => location.reload(), 3000); }
+            } catch (e) { document.getElementById('loaderText').innerText = "OFFLINE. RETRYING..."; setTimeout(() => location.reload(), 3000); }
         }
 
         async function loadData() {
@@ -120,7 +121,7 @@
                 let p = s.total_held > 0 ? Math.round((s.attended / s.total_held) * 100) : 0;
                 return `<div class="glass p-5 rounded-[2rem] border border-slate-800">
                     <div class="flex justify-between mb-3"><div><p class="text-[10px] font-bold text-blue-500 tracking-widest uppercase">${s.code}</p><p class="font-bold text-sm leading-tight mt-1">${s.subject_name}</p></div><p class="font-black text-xl ${p >= 75 ? 'text-emerald-400' : 'text-red-500'}">${p}%</p></div>
-                    <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden"><div class="${p >= 75 ? 'bg-emerald-500' : 'bg-red-500'} h-full transition-all" style="width:${p}%"></div></div>
+                    <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden"><div class="${p >= 75 ? 'bg-emerald-500' : 'bg-red-500'} h-full" style="width:${p}%"></div></div>
                     <div class="grid grid-cols-3 gap-2 mt-4 text-[9px] font-black text-slate-500 uppercase text-center tracking-widest">
                         <div class="bg-slate-900/80 p-2 rounded border border-slate-800">S1: ${s.s1}</div><div class="bg-slate-900/80 p-2 rounded border border-slate-800">S2: ${s.s2}</div><div class="bg-slate-900/80 p-2 rounded border border-slate-800">PUT: ${s.put}</div>
                     </div>
@@ -138,12 +139,14 @@
             const scanner = new Html5Qrcode("reader");
             scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (txt) => {
                 scanner.pause();
-                const parts = txt.split('|');
-                const q = parts[0];
-                const subId = parts[1];
+                const [q, subId] = txt.split('|');
                 const res = await fetch(`${API}/mark-attendance?roll_no=${roll}&qr_content=${q}&subject_id=${subId}&device_id=${devID}`, { method: 'POST' });
-                if (res.ok) { document.getElementById('scanMsg').innerText = "SUCCESS!"; setTimeout(() => location.reload(), 1500); }
-                else { alert("Failed. Check QR or Connection."); scanner.resume(); }
+                if (res.ok) { document.getElementById('scanMsg').innerText = "SECURED!"; setTimeout(() => location.reload(), 1500); }
+                else {
+                    const e = await res.json();
+                    alert(e.detail || "Scanning Failed");
+                    scanner.resume();
+                }
             }, () => { });
         }
     </script>

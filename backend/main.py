@@ -3,7 +3,8 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, and_
+from datetime import datetime, timedelta
 import random, string
 
 from . import models, database
@@ -34,31 +35,14 @@ async def reset_db(admin_key: str):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     models.Base.metadata.drop_all(bind=engine)
     models.Base.metadata.create_all(bind=engine)
-    return {"message": "Database successfully wiped and upgraded to ERP Schema!"}
+    return {"message": "Database successfully wiped!"}
 
 # --- STUDENT ROUTES ---
-@app.post("/register-student")
-async def register(erp_id: str, roll_no: str, name: str, branch: str, year: int, device_id: str, db: Session = Depends(database.get_db)):
-    if len(roll_no) != 13: raise HTTPException(status_code=400, detail="Roll number must be exactly 13 digits")
-    existing = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
-    if existing:
-        if existing.name.strip().lower() == name.strip().lower() and existing.erp_id.strip() == erp_id.strip():
-            if existing.registered_device == "PENDING_RESET":
-                existing.registered_device = device_id
-                db.commit()
-            return {"status": "success", "message": "Welcome back!"}
-        raise HTTPException(status_code=403, detail="Credential Mismatch!")
-    
-    new_student = models.Student(erp_id=erp_id, name=name, roll_no=roll_no, branch=branch, year=year, registered_device=device_id, is_approved=False, total_lectures=0)
-    db.add(new_student)
-    db.commit()
-    return {"status": "success", "message": "Registered! Awaiting HOD approval."}
-
 @app.get("/student-profile")
 async def get_profile(roll_no: str, db: Session = Depends(database.get_db)):
-    # Fetching fresh from DB to ensure 'is_approved' status is real-time
     s = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
     if not s: return {"exists": False}
+    db.refresh(s) # Ensures the latest HOD approval is read from disk
     return {
         "exists": True, 
         "is_approved": s.is_approved, 
@@ -80,7 +64,37 @@ async def student_erp(roll_no: str, db: Session = Depends(database.get_db)):
         data.append({"subject_name": sub.name, "code": sub.code, "attended": att, "total_held": sub.total_lectures_held or 0, "s1": m.sessional_1 if m else 0, "s2": m.sessional_2 if m else 0, "put": m.put_marks if m else 0})
     return {"subjects": data, "overall_attended": s.total_lectures}
 
-# --- ADMIN ROUTES ---
+# --- ATTENDANCE WITH 40-MIN PROTECTION ---
+@app.post("/mark-attendance")
+async def mark_attendance(roll_no: str, qr_content: str, subject_id: int, device_id: str, db: Session = Depends(database.get_db)):
+    global current_qr_string
+    if qr_content != current_qr_string: 
+        raise HTTPException(status_code=400, detail="QR Expired!")
+    
+    student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
+    if not student or not student.is_approved: 
+        raise HTTPException(status_code=403, detail="Not Approved by HOD")
+    if student.registered_device != device_id: 
+        raise HTTPException(status_code=403, detail="Device Mismatch")
+    
+    # 40-MINUTE COOLDOWN LOGIC
+    # Prevents multiple scans for the same subject within 40 minutes
+    time_threshold = datetime.utcnow() - timedelta(minutes=40)
+    already_marked = db.query(models.Attendance).filter(
+        models.Attendance.student_roll == roll_no,
+        models.Attendance.subject_id == subject_id,
+        models.Attendance.timestamp >= time_threshold
+    ).first()
+
+    if already_marked:
+        raise HTTPException(status_code=400, detail="Attendance already recorded for this period (40m lock)")
+
+    student.total_lectures += 1
+    db.add(models.Attendance(student_roll=roll_no, subject_id=subject_id))
+    db.commit()
+    return {"status": "Success"}
+
+# --- ADMIN & TEACHER ROUTES ---
 @app.get("/pending-students")
 async def get_pending(admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
@@ -93,7 +107,7 @@ async def approve(roll_no: str, admin_key: str, db: Session = Depends(database.g
     if student: 
         student.is_approved = True
         db.commit()
-        db.refresh(student) # Crucial: Confirms the save to disk before responding
+        db.refresh(student)
     return {"message": "Approved", "status": "success"}
 
 @app.post("/add-teacher")
@@ -110,12 +124,6 @@ async def assign_subject(name: str, code: str, branch: str, year: int, teacher_i
     db.commit()
     return {"message": "Subject Linked"}
 
-@app.get("/all-students-analytics")
-async def all_analytics(admin_key: str, db: Session = Depends(database.get_db)):
-    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
-    return db.query(models.Student).all()
-
-# --- TEACHER & QR ROUTES ---
 @app.get("/get-teachers")
 async def get_t(db: Session = Depends(database.get_db)): return db.query(models.Teacher).all()
 
@@ -138,19 +146,6 @@ async def generate_qr(subject_id: int, is_new: bool = False, db: Session = Depen
             db.commit()
     current_qr_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
     return {"current_qr_string": current_qr_string}
-
-@app.post("/mark-attendance")
-async def mark_attendance(roll_no: str, qr_content: str, subject_id: int, device_id: str, db: Session = Depends(database.get_db)):
-    global current_qr_string
-    if qr_content != current_qr_string: raise HTTPException(status_code=400, detail="QR Expired!")
-    student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
-    if not student or not student.is_approved: raise HTTPException(status_code=403, detail="Not Approved")
-    if student.registered_device != device_id: raise HTTPException(status_code=403, detail="Device Mismatch")
-    
-    student.total_lectures += 1
-    db.add(models.Attendance(student_roll=roll_no, subject_id=subject_id))
-    db.commit()
-    return {"status": "Success"}
 
 @app.get("/live-attendance")
 async def get_live(subject_id: int, db: Session = Depends(database.get_db)):

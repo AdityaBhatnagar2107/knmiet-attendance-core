@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <title>Faculty Command Center | KNMIET ERP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <style>
         body {
             background: #020617;
@@ -28,7 +28,6 @@
             border-radius: 10px;
         }
 
-        /* Add a quick animation for new items popping into the feed */
         @keyframes slideIn {
             from {
                 opacity: 0;
@@ -93,7 +92,8 @@
                             class="w-16 h-16 rounded-full border-4 border-emerald-500 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.5)]">
                             <span id="timerText" class="text-2xl font-black text-emerald-400 font-mono">5</span>
                         </div>
-                        <div class="p-4 bg-white rounded-2xl shadow-xl relative">
+                        <div
+                            class="p-4 bg-white rounded-2xl shadow-xl relative min-w-[200px] min-h-[200px] flex items-center justify-center">
                             <div id="qrcode"></div>
                         </div>
                     </div>
@@ -141,6 +141,7 @@
         let qrInterval = null;
         let countdownInterval = null;
         let liveFeedInterval = null;
+        let qrcodeInstance = null; // We now store the QR code in memory!
 
         async function loadTeachers() {
             const res = await fetch(`${API}/get-teachers`);
@@ -200,18 +201,23 @@
                 const res = await fetch(`${API}/generate-qr-string?subject_id=${subId}&is_new=${isNew}`);
                 const data = await res.json();
 
-                // Get the text of the subject to pass into the QR
                 const subSelect = document.getElementById('subjectSelect');
-                const subText = subSelect.options[subSelect.selectedIndex].text; // e.g. "TAFL [BCS401] - CSE Yr 2"
+                const subText = subSelect.options[subSelect.selectedIndex].text;
 
-                const qrElement = document.getElementById('qrcode');
-                qrElement.innerHTML = "";
+                const payload = `${data.current_qr_string}|${subId}|${subText}`;
 
-                // The new payload structure!
-                new QRCode(qrElement, {
-                    text: `${data.current_qr_string}|${subId}|${subText}`,
-                    width: 180, height: 180
-                });
+                // If it's the first time, build the QR object. Otherwise, seamlessly update it.
+                if (!qrcodeInstance) {
+                    qrcodeInstance = new QRCode(document.getElementById("qrcode"), {
+                        text: payload,
+                        width: 180,
+                        height: 180,
+                        correctLevel: QRCode.CorrectLevel.L // Low density so phones read it instantly
+                    });
+                } else {
+                    qrcodeInstance.clear(); // Clears internal data
+                    qrcodeInstance.makeCode(payload); // redraws without destroying the DOM
+                }
             } catch (e) { console.error("QR Refesh Failed"); }
         }
 
@@ -236,6 +242,11 @@
             clearInterval(countdownInterval);
             clearInterval(liveFeedInterval);
 
+            // Gracefully destroy the QR code so it can be rebuilt next session
+            if (qrcodeInstance) {
+                qrcodeInstance.clear();
+                qrcodeInstance = null;
+            }
             document.getElementById('qrcode').innerHTML = '<p class="text-red-500 font-bold p-8">CLOSED</p>';
             document.getElementById('timerText').innerText = "-";
 

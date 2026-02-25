@@ -3,14 +3,15 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import func, Column, Integer, String, Text
+from sqlalchemy import func
 import random, string
-import os
 
 from . import models, database
 from .database import engine
 
+# This single line now builds ALL tables, including Timetable!
 models.Base.metadata.create_all(bind=engine)
+
 app = FastAPI()
 app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
 
@@ -25,21 +26,23 @@ app.add_middleware(
 ADMIN_SECRET = "KNM@2026!Admin" 
 current_qr_string = ""
 
-class Timetable(database.Base):
-    __tablename__ = "master_timetables"
-    id = Column(Integer, primary_key=True, index=True)
-    branch_year = Column(String, unique=True, index=True) 
-    grid_data = Column(Text) 
-
-Timetable.__table__.create(bind=engine, checkfirst=True)
-
 @app.get("/")
 async def root():
     return RedirectResponse(url="/frontend/index.html")
 
+# --- DATABASE RESET (CLEAN VERSION) ---
+@app.get("/reset-database-danger")
+async def reset_db(admin_key: str):
+    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+    models.Base.metadata.drop_all(bind=engine)
+    models.Base.metadata.create_all(bind=engine)
+    return {"message": "Database successfully wiped and upgraded to ERP Schema!"}
+
 # --- AUTH & REGISTRATION ---
 @app.post("/register-student")
 async def register(erp_id: str, roll_no: str, name: str, branch: str, year: int, device_id: str, db: Session = Depends(database.get_db)):
+    if len(roll_no) != 13: raise HTTPException(status_code=400, detail="Roll number must be 13 digits")
+    
     existing = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
     if existing:
         if existing.name.strip().lower() == name.strip().lower() and existing.erp_id.strip() == erp_id.strip():
@@ -78,7 +81,7 @@ async def mark_attendance(roll_no: str, qr_content: str, subject_id: int, device
     db.commit()
     return {"status": "Success"}
 
-# --- DATA ANALYTICS (HOD vs COORDINATOR) ---
+# --- DATA ANALYTICS ---
 @app.get("/all-students-analytics")
 async def all_analytics(admin_key: str, teacher_id: int = None, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
@@ -88,7 +91,7 @@ async def all_analytics(admin_key: str, teacher_id: int = None, db: Session = De
             return db.query(models.Student).filter(models.Student.branch == t.department).all()
     return db.query(models.Student).all()
 
-# --- OTHER CORE ROUTES ---
+# --- STUDENT DATA ROUTES ---
 @app.get("/student-profile")
 async def get_profile(roll_no: str, db: Session = Depends(database.get_db)):
     s = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
@@ -105,8 +108,84 @@ async def student_erp(roll_no: str, db: Session = Depends(database.get_db)):
         data.append({"subject_name": sub.name, "code": sub.code, "attended": att, "total_held": sub.total_lectures_held or 0, "s1": m.sessional_1 if m else 0, "s2": m.sessional_2 if m else 0, "put": m.put_marks if m else 0})
     return {"subjects": data, "overall_attended": s.total_lectures}
 
+# --- FACULTY DATA ROUTES ---
 @app.get("/get-teachers")
-async def get_t(db: Session = Depends(database.get_db)): return db.query(models.Teacher).all()
+async def get_t(db: Session = Depends(database.get_db)): 
+    return db.query(models.Teacher).all()
 
 @app.get("/teacher-subjects")
-async def get_ts(teacher_id: int, db: Session = Depends(database.get_db)): return db.query(models.Subject).filter_by(teacher_id=teacher_id).all()
+async def get_ts(teacher_id: int, db: Session = Depends(database.get_db)): 
+    return db.query(models.Subject).filter_by(teacher_id=teacher_id).all()
+
+@app.get("/subject-roster")
+async def get_subject_roster(subject_id: int, db: Session = Depends(database.get_db)):
+    sub = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+    students = db.query(models.Student).filter(models.Student.branch == sub.branch, models.Student.year == sub.year, models.Student.is_approved == True).all()
+    roster = []
+    for s in students:
+        m = db.query(models.ExamMarks).filter_by(student_roll=s.roll_no, subject_id=sub.id).first()
+        roster.append({"name": s.name, "roll_no": s.roll_no, "s1": m.sessional_1 if m else 0, "s2": m.sessional_2 if m else 0, "put": m.put_marks if m else 0})
+    return {"roster": roster}
+
+# --- TIMETABLE ROUTES ---
+@app.get("/get-timetable")
+async def get_timetable(branch_year: str, db: Session = Depends(database.get_db)):
+    tt = db.query(models.Timetable).filter_by(branch_year=branch_year).first()
+    return {"exists": True, "grid_data": tt.grid_data} if tt else {"exists": False}
+
+@app.post("/save-timetable")
+async def save_timetable(branch_year: str, grid_data: str, admin_key: str, db: Session = Depends(database.get_db)):
+    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+    tt = db.query(models.Timetable).filter_by(branch_year=branch_year).first()
+    if not tt:
+        tt = models.Timetable(branch_year=branch_year, grid_data=grid_data)
+        db.add(tt)
+    else:
+        tt.grid_data = grid_data
+    db.commit()
+    return {"status": "success"}
+
+# --- ADMIN ACTIONS ---
+@app.post("/add-teacher")
+async def add_teacher(name: str, email: str, pin: str, role: str, department: str, admin_key: str, db: Session = Depends(database.get_db)):
+    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+    db.add(models.Teacher(name=name, email=email, pin=pin, role=role, department=department))
+    db.commit()
+    return {"message": "Teacher Added"}
+
+@app.post("/assign-subject")
+async def assign_subject(name: str, code: str, branch: str, year: int, teacher_id: int, admin_key: str, db: Session = Depends(database.get_db)):
+    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+    db.add(models.Subject(name=name, code=code, branch=branch, year=year, teacher_id=teacher_id, total_lectures_held=0))
+    db.commit()
+    return {"message": "Subject Assigned"}
+
+@app.get("/verify-teacher-pin")
+async def verify_pin(teacher_id: int, entered_pin: str, db: Session = Depends(database.get_db)):
+    t = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
+    if t and t.pin == entered_pin: return {"status": "success"}
+    raise HTTPException(status_code=401, detail="Invalid PIN")
+
+@app.get("/pending-students")
+async def get_pending(admin_key: str, db: Session = Depends(database.get_db)):
+    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+    return db.query(models.Student).filter(models.Student.is_approved == False).all()
+
+@app.post("/approve-student")
+async def approve(roll_no: str, admin_key: str, db: Session = Depends(database.get_db)):
+    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+    student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
+    if student:
+        student.is_approved = True
+        db.commit()
+    return {"message": "Approved"}
+
+@app.post("/reset-student-device")
+async def reset_device(roll_no: str, admin_key: str, db: Session = Depends(database.get_db)):
+    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+    student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
+    if student:
+        student.registered_device = "PENDING_RESET"
+        db.commit()
+        return {"message": "Device Reset"}
+    raise HTTPException(status_code=404)

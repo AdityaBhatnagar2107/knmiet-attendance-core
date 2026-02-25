@@ -3,7 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>HOD Analytics | KNMIET</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOD Analytics | KNMIET ERP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -11,241 +12,214 @@
             color: white;
             font-family: 'Inter', sans-serif;
         }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 10px;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                background: white !important;
+                color: black !important;
+            }
+
+            .glass {
+                border: none !important;
+                backdrop-filter: none !important;
+                background: transparent !important;
+            }
+        }
     </style>
 </head>
 
-<body class="p-8" onload="loadAnalytics()">
-    <div class="max-w-7xl mx-auto space-y-8">
+<body class="p-4 md:p-8" onload="loadAnalytics()">
+
+    <div class="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
         <div
-            class="flex flex-col md:flex-row justify-between items-center p-8 glass rounded-[2.5rem] border-l-4 border-blue-600 bg-slate-900/50 backdrop-blur-xl">
-            <div>
-                <h1 id="roleTitle" class="text-3xl font-black">Analytics Dashboard</h1>
-                <p class="text-xs text-blue-400 font-bold uppercase tracking-widest mt-1">Student Monitoring System</p>
+            class="flex flex-col md:flex-row justify-between items-center p-6 md:p-10 glass rounded-[2.5rem] border-l-4 border-blue-600 bg-slate-900/50 no-print">
+            <div class="text-center md:text-left">
+                <h1 class="text-3xl font-black">HOD Analytics</h1>
+                <p class="text-xs text-blue-400 font-bold uppercase tracking-widest mt-1">Attendance & Academic Records
+                </p>
             </div>
-            <div class="flex gap-4 mt-4 md:mt-0">
-                <input type="text" id="q" oninput="filter()" placeholder="Search Name/Roll..."
-                    class="bg-slate-950 p-3 rounded-xl border border-slate-700 text-xs outline-none w-64 text-white focus:border-blue-500 transition-all">
+            <div class="flex flex-wrap justify-center gap-3 mt-6 md:mt-0">
+                <button onclick="exportToCSV()"
+                    class="bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-900/20">Download
+                    Excel</button>
+                <button onclick="window.print()"
+                    class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-blue-900/20">Export
+                    PDF</button>
                 <a href="admin.html"
-                    class="bg-slate-800 hover:bg-slate-700 transition-all px-6 py-3 rounded-xl text-xs font-bold flex items-center gap-2 uppercase tracking-widest">➔
-                    Back</a>
+                    class="bg-slate-800 hover:bg-slate-700 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-slate-700 transition-all">Back</a>
             </div>
         </div>
 
-        <div class="bg-slate-900/40 rounded-[2.5rem] overflow-hidden border border-slate-800 shadow-2xl">
-            <table class="w-full text-left">
-                <thead
-                    class="bg-slate-950 text-slate-400 text-[10px] uppercase tracking-widest border-b border-slate-800">
+        <div class="max-w-md no-print">
+            <input type="text" id="searchBox" oninput="filterData()" placeholder="Search Student Name or Roll Number..."
+                class="w-full bg-slate-900 border border-slate-800 p-4 rounded-2xl outline-none focus:border-blue-500 transition-all text-sm">
+        </div>
+
+        <div class="glass rounded-[2.5rem] overflow-hidden border border-slate-800 shadow-2xl overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead class="bg-slate-950 text-slate-400 text-[10px] uppercase tracking-widest">
                     <tr>
                         <th class="p-6">Student Info</th>
-                        <th class="p-6">Department</th>
-                        <th class="p-6 text-center">Overall %</th>
-                        <th class="p-6 text-right">Administrative Actions</th>
+                        <th class="p-6">Branch/Year</th>
+                        <th class="p-6 text-center">Attendance %</th>
+                        <th class="p-6 text-right no-print">Action</th>
                     </tr>
                 </thead>
-                <tbody id="analyticsBody" class="divide-y divide-slate-800/50"></tbody>
+                <tbody id="analyticsBody" class="divide-y divide-slate-800/50">
+                </tbody>
             </table>
         </div>
     </div>
 
-    <div id="dossier"
-        class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
-        <div class="bg-slate-900 max-w-2xl w-full p-8 rounded-[3rem] border-t-4 border-blue-500 shadow-2xl relative">
-            <button onclick="closeD()"
-                class="absolute top-8 right-8 text-slate-500 hover:text-white transition-all font-black">✕</button>
-            <h2 class="text-3xl font-black mb-1">Academic Dossier</h2>
-            <p id="dStudentName" class="text-blue-400 font-bold uppercase tracking-widest text-xs mb-8"></p>
+    <div id="dossierModal"
+        class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+        <div class="bg-slate-900 w-full max-w-2xl p-8 rounded-[3rem] border-t-4 border-blue-500 shadow-2xl relative">
+            <button onclick="closeDossier()"
+                class="absolute top-8 right-8 text-slate-500 hover:text-white font-black">✕</button>
+            <h2 id="dossierName" class="text-2xl font-black mb-1">Student Name</h2>
+            <p id="dossierRoll" class="text-blue-400 text-[10px] font-bold uppercase tracking-widest mb-8"></p>
 
-            <div id="dContent" class="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scroll">
+            <div id="dossierContent" class="space-y-4 max-h-[450px] overflow-y-auto pr-2 custom-scroll">
             </div>
         </div>
     </div>
 
     <script>
         const API = "https://knmiet-attendance-core.onrender.com";
-        const key = localStorage.getItem('admin_key') || "KNM@2026!Admin";
-        let allS = [];
+        const key = localStorage.getItem('admin_key');
+        let allStudents = [];
 
         async function loadAnalytics() {
             try {
-                // Determine if HOD or Coordinator (For future expansion, currently fetches all based on key)
                 const res = await fetch(`${API}/all-students-analytics?admin_key=${key}`);
-                if (!res.ok) throw new Error("Auth Failed");
+                allStudents = await res.json();
 
-                allS = await res.json();
-
-                // Fetch full ERP data for each student to calculate their overall percentage
-                // (In a massive production app, the backend would pre-calculate this, but we do it dynamically here)
-                for (let s of allS) {
+                // Fetch extra ERP details (marks/attendance) for each student
+                for (let s of allStudents) {
                     const erpRes = await fetch(`${API}/student-erp-data?roll_no=${s.roll_no}`);
-                    const erpData = await erpRes.json();
-
-                    let totalHeld = 0;
-                    let totalAtt = 0;
-                    erpData.subjects.forEach(sub => {
-                        totalHeld += (sub.total_held || 0);
-                        totalAtt += sub.attended;
-                    });
-
-                    s.overall_percent = totalHeld > 0 ? Math.round((totalAtt / totalHeld) * 100) : 0;
-                    s.erpData = erpData; // Store for dossier and warning letters
+                    s.erp = await erpRes.json();
                 }
 
-                render(allS);
+                renderTable(allStudents);
             } catch (e) {
-                console.error(e);
-                alert("Session Expired. Please login via Admin panel.");
+                console.error("Failed to load analytics", e);
             }
         }
 
-        function render(list) {
-            document.getElementById('analyticsBody').innerHTML = list.map(s => {
-                const isShort = s.overall_percent < 75;
-                const pColor = isShort ? 'text-red-500' : 'text-emerald-400';
-                const rowBg = isShort ? 'bg-red-950/10 hover:bg-red-950/20' : 'hover:bg-blue-900/5';
+        function renderTable(data) {
+            const body = document.getElementById('analyticsBody');
+            body.innerHTML = data.map(s => {
+                // Calculate percentage based on attended vs total held across all subjects
+                let totalAttended = 0;
+                let totalHeld = 0;
+                s.erp.subjects.forEach(sub => {
+                    totalAttended += sub.attended;
+                    totalHeld += sub.total_held;
+                });
+
+                const percent = totalHeld > 0 ? Math.round((totalAttended / totalHeld) * 100) : 0;
+                const colorClass = percent < 75 ? 'text-red-500' : 'text-emerald-400';
 
                 return `
-                <tr class="transition-all ${rowBg}">
+                <tr class="hover:bg-blue-900/5 transition-colors">
                     <td class="p-6">
                         <p class="font-bold text-sm text-white">${s.name}</p>
-                        <p class="text-[10px] text-slate-500 font-mono tracking-widest mt-1">ROLL: ${s.roll_no}</p>
+                        <p class="text-[10px] text-slate-500 font-mono mt-0.5">${s.roll_no}</p>
                     </td>
                     <td class="p-6">
                         <span class="bg-slate-800 text-slate-300 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">${s.branch} - YR ${s.year}</span>
                     </td>
                     <td class="p-6 text-center">
-                        <p class="text-2xl font-black ${pColor}">${s.overall_percent}%</p>
-                        <p class="text-[8px] uppercase text-slate-500 font-bold">${s.total_lectures} Total Scans</p>
+                        <p class="text-xl font-black ${colorClass}">${percent}%</p>
+                        <p class="text-[8px] text-slate-500 uppercase font-bold">${totalAttended}/${totalHeld} Lectures</p>
                     </td>
-                    <td class="p-6 text-right space-x-2">
-                        ${isShort ? `<button onclick="generateWarning('${s.roll_no}', '${s.name}', '${s.branch}', ${s.year}, ${s.overall_percent})" class="text-[9px] bg-red-600/20 text-red-500 border border-red-900/50 px-3 py-2 rounded-lg font-black tracking-widest uppercase hover:bg-red-600 hover:text-white transition-all">Issue Warning</button>` : ''}
-                        <button onclick="viewD('${s.roll_no}', '${s.name}')" class="text-[9px] bg-blue-600 px-4 py-2 rounded-lg font-black tracking-widest uppercase hover:bg-blue-500 transition-all text-white">Dossier</button>
+                    <td class="p-6 text-right no-print">
+                        <button onclick="openDossier('${s.roll_no}')" class="bg-blue-600/10 text-blue-400 border border-blue-600/20 px-4 py-2 rounded-xl text-[9px] font-black uppercase hover:bg-blue-600 hover:text-white transition-all">View Marks</button>
                     </td>
                 </tr>`;
             }).join('');
         }
 
-        function filter() {
-            const q = document.getElementById('q').value.toLowerCase();
-            render(allS.filter(s => s.name.toLowerCase().includes(q) || s.roll_no.includes(q)));
+        function filterData() {
+            const q = document.getElementById('searchBox').value.toLowerCase();
+            const filtered = allStudents.filter(s => s.name.toLowerCase().includes(q) || s.roll_no.includes(q));
+            renderTable(filtered);
         }
 
-        // --- DOSSIER LOGIC ---
-        function viewD(roll, name) {
-            const s = allS.find(st => st.roll_no === roll);
-            document.getElementById('dStudentName').innerText = `${name} | ${roll}`;
+        function openDossier(roll) {
+            const s = allStudents.find(x => x.roll_no === roll);
+            document.getElementById('dossierName').innerText = s.name;
+            document.getElementById('dossierRoll').innerText = `ROLL: ${s.roll_no} | ${s.branch} YEAR ${s.year}`;
 
-            document.getElementById('dContent').innerHTML = s.erpData.subjects.map(sub => {
-                let p = sub.total_held > 0 ? Math.round((sub.attended / sub.total_held) * 100) : 0;
-                let c = p >= 75 ? 'text-emerald-400' : 'text-red-500';
-
-                return `
-                <div class="bg-slate-950/50 p-5 rounded-[2rem] border border-slate-800/80">
-                    <div class="flex justify-between items-center mb-4">
+            document.getElementById('dossierContent').innerHTML = s.erp.subjects.map(sub => `
+                <div class="glass p-5 rounded-[2rem] border border-slate-800/80">
+                    <div class="flex justify-between items-start mb-4">
                         <div>
-                            <p class="text-[10px] text-blue-500 font-bold tracking-widest uppercase">${sub.code}</p>
-                            <p class="font-bold text-sm text-white">${sub.subject_name}</p>
+                            <p class="text-[9px] text-blue-500 font-bold uppercase tracking-widest">${sub.code}</p>
+                            <p class="font-bold text-sm">${sub.subject_name}</p>
                         </div>
                         <div class="text-right">
-                            <p class="${c} font-black text-xl">${p}%</p>
-                            <p class="text-[9px] text-slate-500 uppercase">${sub.attended}/${sub.total_held} Attended</p>
+                            <p class="font-black text-lg text-emerald-400">${sub.total_held > 0 ? Math.round((sub.attended / sub.total_held) * 100) : 0}%</p>
+                            <p class="text-[8px] text-slate-500 uppercase font-bold">${sub.attended}/${sub.total_held} Attended</p>
                         </div>
                     </div>
-                    <div class="grid grid-cols-3 gap-2 text-[10px] font-black uppercase tracking-widest text-center">
-                        <div class="bg-slate-900 py-2 rounded-xl text-slate-400">S1: <span class="text-white">${sub.s1}</span></div>
-                        <div class="bg-slate-900 py-2 rounded-xl text-slate-400">S2: <span class="text-white">${sub.s2}</span></div>
-                        <div class="bg-slate-900 py-2 rounded-xl text-slate-400">PUT: <span class="text-white">${sub.put}</span></div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="bg-slate-950 p-2 rounded-xl text-center border border-slate-800">
+                            <p class="text-[8px] text-slate-500 uppercase mb-1">Sess 1</p>
+                            <p class="font-black text-xs text-blue-400">${sub.s1}</p>
+                        </div>
+                        <div class="bg-slate-950 p-2 rounded-xl text-center border border-slate-800">
+                            <p class="text-[8px] text-slate-500 uppercase mb-1">Sess 2</p>
+                            <p class="font-black text-xs text-blue-400">${sub.s2}</p>
+                        </div>
+                        <div class="bg-slate-950 p-2 rounded-xl text-center border border-slate-800">
+                            <p class="text-[8px] text-slate-500 uppercase mb-1">PUT</p>
+                            <p class="font-black text-xs text-blue-400">${sub.put}</p>
+                        </div>
                     </div>
-                </div>`;
-            }).join('');
+                </div>
+            `).join('');
 
-            document.getElementById('dossier').classList.remove('hidden');
+            document.getElementById('dossierModal').classList.remove('hidden');
         }
-        function closeD() { document.getElementById('dossier').classList.add('hidden'); }
 
-        // --- AUTOMATED WARNING LETTER GENERATOR ---
-        function generateWarning(roll, name, branch, year, percent) {
-            const s = allS.find(st => st.roll_no === roll);
-            const date = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+        function closeDossier() {
+            document.getElementById('dossierModal').classList.add('hidden');
+        }
 
-            // Build Subject Table for the PDF
-            let rows = s.erpData.subjects.map(sub => {
-                let p = sub.total_held > 0 ? Math.round((sub.attended / sub.total_held) * 100) : 0;
-                return `<tr>
-                    <td style="padding: 10px; border: 1px solid #ddd;">${sub.code}</td>
-                    <td style="padding: 10px; border: 1px solid #ddd;">${sub.subject_name}</td>
-                    <td style="padding: 10px; border: 1px solid #ddd; text-align:center;">${sub.attended} / ${sub.total_held}</td>
-                    <td style="padding: 10px; border: 1px solid #ddd; text-align:center; color:${p < 75 ? 'red' : 'green'}; font-weight:bold;">${p}%</td>
-                </tr>`;
-            }).join('');
-
-            // Open a new tab and inject the printable HTML
-            const printWin = window.open('', '_blank');
-            printWin.document.write(`
-                <html>
-                <head>
-                    <title>Short Attendance Notice - ${roll}</title>
-                    <style>
-                        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #111; max-width: 800px; margin: 0 auto; line-height: 1.6; }
-                        .header { text-align: center; border-bottom: 2px solid #111; padding-bottom: 20px; margin-bottom: 40px; }
-                        h1 { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
-                        h2 { margin: 5px 0 0 0; font-size: 14px; color: #555; font-weight: normal; }
-                        .title { text-align: center; font-weight: bold; font-size: 18px; text-decoration: underline; margin-bottom: 30px; }
-                        .info-grid { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 30px; font-size: 14px; }
-                        table { width: 100%; border-collapse: collapse; margin: 30px 0; font-size: 13px; }
-                        th { background: #f4f4f4; padding: 12px 10px; border: 1px solid #ddd; text-align: left; text-transform: uppercase; }
-                        .footer { margin-top: 80px; display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; }
-                        .sig-line { border-top: 1px solid #111; padding-top: 10px; width: 220px; text-align: center; }
-                        @media print { body { padding: 0; } @page { margin: 20mm; } }
-                    </style>
-                </head>
-                <body>
-                    <div class="header">
-                        <h1>Dr. K. N. Modi Institute of Engineering & Technology</h1>
-                        <h2>Modinagar, Ghaziabad, Uttar Pradesh 201204</h2>
-                        <h2>Approved by AICTE & Affiliated to AKTU, Lucknow</h2>
-                    </div>
-                    
-                    <div class="title">NOTICE OF SHORT ATTENDANCE</div>
-                    
-                    <div class="info-grid">
-                        <div>
-                            <strong>To:</strong> ${name}<br>
-                            <strong>Roll Number:</strong> ${roll}<br>
-                            <strong>Course:</strong> B.Tech (${branch}) - Year ${year}
-                        </div>
-                        <div style="text-align: right;">
-                            <strong>Date:</strong> ${date}
-                        </div>
-                    </div>
-
-                    <p>Dear Student / Parent,</p>
-                    <p>This is to bring to your immediate attention that your overall academic attendance is currently at <strong style="color:red; font-size: 16px;">${percent}%</strong>. This falls severely below the minimum <strong>75% mandatory requirement</strong> stipulated by Dr. A.P.J. Abdul Kalam Technical University (AKTU).</p>
-                    
-                    <p>Below is your detailed subject-wise attendance breakdown as recorded in the central ERP system:</p>
-
-                    <table>
-                        <thead>
-                            <tr><th>Subject Code</th><th>Subject Name</th><th style="text-align:center;">Lectures Attended</th><th style="text-align:center;">Percentage</th></tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-
-                    <p>You are hereby strictly directed to attend all scheduled lectures, tutorials, and practical sessions without fail. Failure to improve your attendance to the required 75% threshold will result in strict disciplinary action, including <strong>debarment from the upcoming University Sessional and End-Semester Examinations</strong>.</p>
-                    <p>Parents are advised to monitor the student's daily attendance via the KNMIET Student Portal to avoid academic loss.</p>
-
-                    <div class="footer">
-                        <div class="sig-line">Signature of Class Coordinator</div>
-                        <div class="sig-line">Signature of Head of Department</div>
-                    </div>
-
-                    <script>
-                        // Automatically trigger the print dialog when the window loads
-                        window.onload = function() { setTimeout(() => { window.print(); }, 500); }
-                    <\/script>
-                </body>
-                </html>
-            `);
-            printWin.document.close();
+        function exportToCSV() {
+            let csv = "Student Name,Roll Number,Branch,Year,Overall Attendance %\n";
+            allStudents.forEach(s => {
+                let att = 0; let held = 0;
+                s.erp.subjects.forEach(sub => { att += sub.attended; held += sub.total_held; });
+                let p = held > 0 ? Math.round((att / held) * 100) : 0;
+                csv += `"${s.name}",${s.roll_no},${s.branch},${s.year},${p}%\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `KNMIET_Attendance_Report_${new Date().toLocaleDateString()}.csv`);
+            a.click();
         }
     </script>
 </body>

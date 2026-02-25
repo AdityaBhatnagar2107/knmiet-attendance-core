@@ -20,7 +20,6 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        /* Keep timetable styling compact for mobile */
         table {
             border-collapse: collapse;
             width: 100%;
@@ -41,9 +40,13 @@
             text-transform: uppercase;
         }
 
-        td[contenteditable="true"] {
-            background: rgba(59, 130, 246, 0.1);
-            outline: none;
+        .custom-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 10px;
         }
     </style>
 </head>
@@ -51,15 +54,17 @@
 <body class="p-4 md:p-8 flex flex-col items-center" onload="checkStatus()">
     <div id="pendingView" class="hidden mt-20 glass p-10 rounded-[3rem] text-center border-t-4 border-yellow-500">
         <h2 class="text-2xl font-bold text-yellow-500">Approval Pending</h2>
-        <button onclick="location.reload()" class="mt-4 bg-yellow-600 px-6 py-2 rounded-xl font-bold">Refresh</button>
+        <p class="text-xs text-slate-400 mt-2">Waiting for HOD verification...</p>
+        <button onclick="location.reload()" class="mt-6 bg-yellow-600 px-6 py-2 rounded-xl font-bold">Refresh
+            Status</button>
     </div>
 
-    <div id="approvedView" class="hidden w-full max-w-6xl space-y-8">
+    <div id="approvedView" class="hidden w-full max-w-6xl space-y-8 animate-in fade-in duration-500">
 
-        <div class="glass p-8 rounded-[2.5rem] border-l-4 border-blue-500 flex justify-between items-center">
+        <div class="glass p-8 rounded-[2.5rem] border-l-4 border-blue-500 flex justify-between items-center shadow-2xl">
             <div>
-                <h1 id="sName" class="text-2xl font-black">Student</h1>
-                <p id="sBranch" class="text-blue-400 text-xs font-bold uppercase tracking-widest"></p>
+                <h1 id="sName" class="text-2xl font-black">Student Name</h1>
+                <p id="sBranch" class="text-blue-400 text-xs font-bold uppercase tracking-widest mt-1"></p>
             </div>
             <div class="text-right">
                 <p class="text-[10px] text-slate-500 font-bold uppercase">Total Attendance</p>
@@ -67,7 +72,7 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
             <div class="lg:col-span-1 space-y-4">
                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">My Subjects</h3>
@@ -76,24 +81,27 @@
 
             <div class="lg:col-span-2 space-y-8">
 
-                <div class="glass p-6 rounded-[2.5rem] border-t-4 border-slate-800">
-                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Live Scanner</h3>
-                    <div id="reader" class="rounded-3xl overflow-hidden shadow-inner shadow-slate-950"></div>
-                    <p id="scanMsg" class="mt-4 text-center font-bold text-xs uppercase tracking-widest"></p>
-                </div>
-
-                <div class="glass p-8 rounded-[2.5rem] border-t-4 border-blue-600 overflow-x-auto">
+                <div class="glass p-6 rounded-[2.5rem] border-t-4 border-slate-800 shadow-2xl relative">
                     <h3
                         class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center justify-between">
-                        Weekly Timetable
-                        <span class="bg-blue-900/40 text-blue-400 px-3 py-1 rounded-full text-[9px]">Live Data</span>
+                        Live Scanner
+                        <span class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
                     </h3>
+                    <div id="reader" class="rounded-[2rem] overflow-hidden border-2 border-slate-800"></div>
+                    <div
+                        class="bg-slate-950 mt-4 p-4 rounded-xl border border-slate-800 min-h-[60px] flex items-center justify-center">
+                        <p id="scanMsg" class="text-center font-bold text-xs uppercase tracking-widest text-slate-500">
+                            Align QR Code to scan</p>
+                    </div>
+                </div>
+
+                <div class="glass p-8 rounded-[2.5rem] border-t-4 border-blue-600 overflow-x-auto shadow-2xl">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Weekly Timetable</h3>
                     <div id="timetableContainer"
                         class="w-full bg-slate-900/50 rounded-xl border border-slate-700 overflow-hidden">
                         <p class="text-xs text-slate-500 italic p-6 text-center">Loading Timetable...</p>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
@@ -116,7 +124,7 @@
 
                     loadData();
                     startScanner();
-                    loadTimetable(`${data.branch}-${data.year}`); // Calls the new timetable function!
+                    loadTimetable(`${data.branch}-${data.year}`);
                 } else document.getElementById('pendingView').classList.remove('hidden');
             } catch (e) { console.error("Error connecting to server."); }
         }
@@ -126,13 +134,13 @@
             const erp = await res.json();
             document.getElementById('subjectList').innerHTML = erp.subjects.map(s => {
                 let p = s.total_held > 0 ? Math.round((s.attended / s.total_held) * 100) : 0;
-                return `<div class="glass p-6 rounded-3xl border border-slate-800">
-                    <div class="flex justify-between mb-2"><div><p class="text-[10px] font-bold text-blue-500 tracking-widest uppercase">${s.code}</p><p class="font-bold text-sm">${s.subject_name}</p></div><p class="font-black text-xl ${p >= 75 ? 'text-emerald-400' : 'text-red-500'}">${p}%</p></div>
-                    <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden"><div class="${p >= 75 ? 'bg-emerald-500' : 'bg-red-500'} h-full transition-all" style="width:${p}%"></div></div>
+                return `<div class="glass p-5 rounded-[2rem] border border-slate-800">
+                    <div class="flex justify-between mb-3"><div><p class="text-[10px] font-bold text-blue-500 tracking-widest uppercase">${s.code}</p><p class="font-bold text-sm leading-tight mt-1">${s.subject_name}</p></div><p class="font-black text-xl ${p >= 75 ? 'text-emerald-400' : 'text-red-500'}">${p}%</p></div>
+                    <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden"><div class="${p >= 75 ? 'bg-emerald-500' : 'bg-red-500'} h-full transition-all" style="width:${p}%"></div></div>
                     <div class="grid grid-cols-3 gap-2 mt-4 text-[9px] font-black text-slate-500 uppercase text-center tracking-widest">
-                        <div class="bg-slate-900/50 p-2 rounded-lg border border-slate-800">S1: <span class="text-blue-400">${s.s1}</span></div>
-                        <div class="bg-slate-900/50 p-2 rounded-lg border border-slate-800">S2: <span class="text-blue-400">${s.s2}</span></div>
-                        <div class="bg-slate-900/50 p-2 rounded-lg border border-slate-800">PUT: <span class="text-blue-400">${s.put}</span></div>
+                        <div class="bg-slate-900/80 p-2 rounded border border-slate-800">S1: <span class="text-blue-400">${s.s1}</span></div>
+                        <div class="bg-slate-900/80 p-2 rounded border border-slate-800">S2: <span class="text-blue-400">${s.s2}</span></div>
+                        <div class="bg-slate-900/80 p-2 rounded border border-slate-800">PUT: <span class="text-blue-400">${s.put}</span></div>
                     </div>
                 </div>`;
             }).join('');
@@ -143,20 +151,13 @@
                 const res = await fetch(`${API}/get-timetable?branch_year=${branchYearStr}`);
                 const data = await res.json();
                 const container = document.getElementById('timetableContainer');
-
                 if (data.exists && data.grid_data) {
-                    // Inject the HTML grid exactly as the Admin saved it
                     container.innerHTML = data.grid_data;
-
-                    // We must disable editing so students can't accidentally type on their view
-                    const cells = container.querySelectorAll('td');
-                    cells.forEach(cell => cell.setAttribute('contenteditable', 'false'));
+                    container.querySelectorAll('td').forEach(cell => cell.setAttribute('contenteditable', 'false'));
                 } else {
                     container.innerHTML = `<p class="text-xs text-yellow-500 font-bold p-6 text-center uppercase tracking-widest">No Timetable Published Yet</p>`;
                 }
-            } catch (e) {
-                console.error("Failed to load timetable");
-            }
+            } catch (e) { }
         }
 
         function startScanner() {
@@ -164,26 +165,38 @@
             scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (txt) => {
                 scanner.pause();
                 const msg = document.getElementById('scanMsg');
-                msg.innerText = "VERIFYING SECURE QR...";
-                msg.className = "mt-4 text-center font-bold text-xs uppercase tracking-widest text-yellow-500";
 
-                const [q, subId] = txt.split('|');
-                try {
-                    const res = await fetch(`${API}/mark-attendance?roll_no=${roll}&qr_content=${q}&subject_id=${subId}&device_id=${devID}`, { method: 'POST' });
-                    if (res.ok) {
-                        msg.innerText = "ATTENDANCE RECORDED!";
-                        msg.className = "mt-4 text-center font-black text-xs uppercase tracking-widest text-emerald-400";
-                        setTimeout(() => location.reload(), 2000);
-                    } else {
-                        const e = await res.json();
-                        msg.innerText = e.detail;
-                        msg.className = "mt-4 text-center font-bold text-xs uppercase tracking-widest text-red-500";
-                        setTimeout(() => scanner.resume(), 3000);
+                // Parse the new 3-part QR format
+                const parts = txt.split('|');
+                const q = parts[0];
+                const subId = parts[1];
+                const subDetails = parts[2] || "Class Session"; // e.g. "TAFL [BCS401] - CSE Yr 2"
+
+                // Show the cool UI text!
+                msg.innerHTML = `CONNECTING: <span class="text-white">${subDetails.toUpperCase()}</span>`;
+                msg.className = "text-center font-bold text-[10px] uppercase tracking-widest text-blue-400 animate-pulse";
+
+                // Small delay so the student can read the subject name before it processes
+                setTimeout(async () => {
+                    try {
+                        const res = await fetch(`${API}/mark-attendance?roll_no=${roll}&qr_content=${q}&subject_id=${subId}&device_id=${devID}`, { method: 'POST' });
+                        if (res.ok) {
+                            msg.innerText = "ATTENDANCE SECURED!";
+                            msg.className = "text-center font-black text-sm uppercase tracking-widest text-emerald-400";
+                            setTimeout(() => location.reload(), 1500);
+                        } else {
+                            const e = await res.json();
+                            msg.innerText = e.detail;
+                            msg.className = "text-center font-bold text-[10px] uppercase tracking-widest text-red-500";
+                            setTimeout(() => { msg.innerText = "Align QR Code to scan"; msg.className = "text-center font-bold text-xs uppercase tracking-widest text-slate-500"; scanner.resume(); }, 3000);
+                        }
+                    } catch (err) {
+                        msg.innerText = "NETWORK ERROR";
+                        msg.className = "text-center font-bold text-[10px] uppercase tracking-widest text-red-500";
+                        setTimeout(() => { scanner.resume(); }, 3000);
                     }
-                } catch (err) {
-                    msg.innerText = "NETWORK ERROR";
-                    setTimeout(() => scanner.resume(), 3000);
-                }
+                }, 800); // 0.8 second dramatic delay
+
             }, () => { });
         }
     </script>

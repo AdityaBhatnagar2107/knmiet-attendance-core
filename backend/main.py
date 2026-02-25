@@ -126,7 +126,6 @@ async def verify_pin(teacher_id: int, entered_pin: str, db: Session = Depends(da
     if t and t.pin == entered_pin: return {"status": "success", "role": t.role}
     raise HTTPException(status_code=401, detail="Invalid PIN")
 
-# >>> CRITICAL FIX: is_new flag prevents lecture count from exploding <<<
 @app.get("/generate-qr-string")
 async def generate_qr(subject_id: int, is_new: bool = False, db: Session = Depends(database.get_db)):
     global current_qr_string
@@ -135,7 +134,6 @@ async def generate_qr(subject_id: int, is_new: bool = False, db: Session = Depen
         if sub: 
             sub.total_lectures_held = (sub.total_lectures_held or 0) + 1
             db.commit()
-            
     current_qr_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
     return {"current_qr_string": current_qr_string}
 
@@ -147,13 +145,24 @@ async def mark_attendance(roll_no: str, qr_content: str, subject_id: int, device
     if not student or not student.is_approved: raise HTTPException(status_code=403, detail="Not Approved")
     if student.registered_device != device_id: raise HTTPException(status_code=403, detail="Device Mismatch")
     
-    # Prevent double-marking in the same session
     already_marked = db.query(models.Attendance).filter_by(student_roll=roll_no, subject_id=subject_id).order_by(models.Attendance.id.desc()).first()
     
     student.total_lectures += 1
     db.add(models.Attendance(student_roll=roll_no, subject_id=subject_id))
     db.commit()
     return {"status": "Success"}
+
+# >>> NEW LIVE ATTENDANCE ROUTE FOR TEACHER DASHBOARD <<<
+@app.get("/live-attendance")
+async def get_live_attendance(subject_id: int, db: Session = Depends(database.get_db)):
+    # Gets the last 15 students who scanned for this specific subject
+    records = db.query(models.Attendance).filter(models.Attendance.subject_id == subject_id).order_by(models.Attendance.id.desc()).limit(15).all()
+    live_data = []
+    for r in records:
+        s = db.query(models.Student).filter(models.Student.roll_no == r.student_roll).first()
+        if s:
+            live_data.append({"name": s.name, "roll_no": s.roll_no, "branch": s.branch, "year": s.year})
+    return live_data
 
 @app.get("/subject-roster")
 async def get_subject_roster(subject_id: int, db: Session = Depends(database.get_db)):

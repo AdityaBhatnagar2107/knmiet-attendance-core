@@ -93,7 +93,7 @@ async def approve(roll_no: str, admin_key: str, db: Session = Depends(database.g
     if student: 
         student.is_approved = True
         db.commit()
-        db.refresh(student) # Crucial: Confirms save before returning response
+        db.refresh(student) # Crucial: Confirms the save to disk before responding
     return {"message": "Approved", "status": "success"}
 
 @app.post("/add-teacher")
@@ -111,7 +111,7 @@ async def assign_subject(name: str, code: str, branch: str, year: int, teacher_i
     return {"message": "Subject Linked"}
 
 @app.get("/all-students-analytics")
-async def all_analytics(admin_key: str, teacher_id: int = None, db: Session = Depends(database.get_db)):
+async def all_analytics(admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     return db.query(models.Student).all()
 

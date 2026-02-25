@@ -94,7 +94,7 @@
         async function checkStatus() {
             if (!roll) { window.location.href = "register.html"; return; }
             try {
-                // The 't=' param forces the browser to fetch a fresh status, not a cached one
+                // THE SYNC FIX: We add nocache timestamp to bypass old browser data
                 const res = await fetch(`${API}/student-profile?roll_no=${roll}&t=${Date.now()}`);
                 const data = await res.json();
 
@@ -138,7 +138,9 @@
             const scanner = new Html5Qrcode("reader");
             scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (txt) => {
                 scanner.pause();
-                const [q, subId] = txt.split('|');
+                const parts = txt.split('|');
+                const q = parts[0];
+                const subId = parts[1];
                 const res = await fetch(`${API}/mark-attendance?roll_no=${roll}&qr_content=${q}&subject_id=${subId}&device_id=${devID}`, { method: 'POST' });
                 if (res.ok) { document.getElementById('scanMsg').innerText = "SUCCESS!"; setTimeout(() => location.reload(), 1500); }
                 else { alert("Failed. Check QR or Connection."); scanner.resume(); }

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <title>Faculty Command Center | KNMIET ERP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         body {
             background: #020617;
@@ -92,8 +92,9 @@
                             class="w-16 h-16 rounded-full border-4 border-emerald-500 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.5)]">
                             <span id="timerText" class="text-2xl font-black text-emerald-400 font-mono">5</span>
                         </div>
-                        <div
-                            class="p-4 bg-white rounded-2xl shadow-xl relative min-w-[200px] min-h-[200px] flex items-center justify-center">
+
+                        <div class="p-4 bg-white rounded-2xl shadow-xl flex items-center justify-center"
+                            style="width: 212px; height: 212px;">
                             <div id="qrcode"></div>
                         </div>
                     </div>
@@ -141,7 +142,6 @@
         let qrInterval = null;
         let countdownInterval = null;
         let liveFeedInterval = null;
-        let qrcodeInstance = null; // We now store the QR code in memory!
 
         async function loadTeachers() {
             const res = await fetch(`${API}/get-teachers`);
@@ -168,7 +168,6 @@
             document.getElementById('subjectSelect').innerHTML = subjects.map(s => `<option value="${s.id}">${s.name} [${s.code}] — ${s.branch} Yr ${s.year}</option>`).join('');
         }
 
-        // --- THE DYNAMIC 5-SEC ENGINE & LIVE FEED ---
         async function startSession() {
             const subSelect = document.getElementById('subjectSelect');
             const subId = subSelect.value;
@@ -179,7 +178,6 @@
 
             await refreshQR(subId, true);
 
-            // Set Timer to 5 seconds
             let timeLeft = 5;
             document.getElementById('timerText').innerText = timeLeft;
 
@@ -189,10 +187,7 @@
                 document.getElementById('timerText').innerText = timeLeft;
             }, 1000);
 
-            // Refresh QR exactly every 5 seconds
             qrInterval = setInterval(() => { refreshQR(subId, false); }, 5000);
-
-            // Fetch Live Scans every 2 seconds
             liveFeedInterval = setInterval(() => { fetchLiveFeed(subId); }, 2000);
         }
 
@@ -202,23 +197,25 @@
                 const data = await res.json();
 
                 const subSelect = document.getElementById('subjectSelect');
-                const subText = subSelect.options[subSelect.selectedIndex].text;
+                let subText = subSelect.options[subSelect.selectedIndex].text;
+
+                // CRITICAL FIX: Strip the em-dash and weird unicode characters that crash the QR library
+                subText = subText.replace(/—/g, "-").replace(/[^\x00-\x7F]/g, "");
 
                 const payload = `${data.current_qr_string}|${subId}|${subText}`;
 
-                // If it's the first time, build the QR object. Otherwise, seamlessly update it.
-                if (!qrcodeInstance) {
-                    qrcodeInstance = new QRCode(document.getElementById("qrcode"), {
-                        text: payload,
-                        width: 180,
-                        height: 180,
-                        correctLevel: QRCode.CorrectLevel.L // Low density so phones read it instantly
-                    });
-                } else {
-                    qrcodeInstance.clear(); // Clears internal data
-                    qrcodeInstance.makeCode(payload); // redraws without destroying the DOM
-                }
-            } catch (e) { console.error("QR Refesh Failed"); }
+                const qrElement = document.getElementById('qrcode');
+                qrElement.innerHTML = ""; // Hard clear the old image
+
+                new QRCode(qrElement, {
+                    text: payload,
+                    width: 180,
+                    height: 180,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.L // Low density for ultra-fast scanning
+                });
+            } catch (e) { console.error("QR Refresh Failed", e); }
         }
 
         async function fetchLiveFeed(subId) {
@@ -242,12 +239,7 @@
             clearInterval(countdownInterval);
             clearInterval(liveFeedInterval);
 
-            // Gracefully destroy the QR code so it can be rebuilt next session
-            if (qrcodeInstance) {
-                qrcodeInstance.clear();
-                qrcodeInstance = null;
-            }
-            document.getElementById('qrcode').innerHTML = '<p class="text-red-500 font-bold p-8">CLOSED</p>';
+            document.getElementById('qrcode').innerHTML = '<p class="text-red-500 font-bold p-8 text-center mt-10">CLOSED</p>';
             document.getElementById('timerText').innerText = "-";
 
             setTimeout(() => {
@@ -257,7 +249,6 @@
             }, 1500);
         }
 
-        // --- ROSTER ---
         async function loadRoster() {
             const subId = document.getElementById('subjectSelect').value;
             if (!subId) return;
@@ -273,6 +264,7 @@
                 </div>
             `).join('');
         }
+
         async function updateM(roll, subId, val, type) {
             let s1 = type === 's1' ? val : 0; let s2 = type === 's2' ? val : 0; let put = type === 'put' ? val : 0;
             await fetch(`${API}/update-marks?roll_no=${roll}&subject_id=${subId}&s1=${s1}&s2=${s2}&put=${put}`, { method: 'POST' });

@@ -44,7 +44,6 @@
             animation: slideIn 0.3s ease forwards;
         }
 
-        /* Smooth transition for the green flash effect */
         .mark-input {
             transition: background-color 0.4s ease, color 0.4s ease;
         }
@@ -52,6 +51,21 @@
 </head>
 
 <body class="p-4 md:p-8 flex flex-col items-center min-h-screen">
+
+    <div id="globalLoader"
+        class="fixed inset-0 bg-[#020617] z-[9999] flex flex-col items-center justify-center transition-opacity duration-1000">
+        <div class="bg-white p-4 rounded-3xl mb-8 shadow-[0_0_30px_rgba(59,130,246,0.2)] animate-pulse">
+            <img src="knmiet-logo1494x375.webp" class="h-10 object-contain" alt="KNMIET Logo"
+                onerror="this.src='knmiet-logo.webp'">
+        </div>
+        <div class="w-12 h-12 border-4 border-slate-800 border-t-blue-500 rounded-full animate-spin mb-6"></div>
+        <h2 class="text-lg font-black text-white tracking-widest uppercase text-center px-4">Establishing Secure
+            Connection</h2>
+        <p id="loaderText" class="text-xs text-blue-400 font-bold uppercase tracking-widest mt-2 animate-pulse">Waking
+            KNMIET Cloud Servers...</p>
+        <p class="text-[9px] text-slate-600 mt-8 max-w-[250px] text-center uppercase tracking-widest leading-relaxed">
+            This encrypted handshake may take up to 50 seconds on initial boot. Please do not refresh.</p>
+    </div>
 
     <div id="loginGate"
         class="max-w-md w-full mt-12 p-10 glass rounded-[3rem] text-center border-t-4 border-blue-600 shadow-2xl">
@@ -148,10 +162,24 @@
         let liveFeedInterval = null;
         let qrcodeInstance = null;
 
+        // THE LOADER LOGIC
         async function loadTeachers() {
-            const res = await fetch(`${API}/get-teachers`);
-            const teachers = await res.json();
-            document.getElementById('teacherSelect').innerHTML = teachers.map(t => `<option value="${t.id}">${t.name} — ${t.role}</option>`).join('');
+            try {
+                const res = await fetch(`${API}/get-teachers`);
+                const teachers = await res.json();
+                document.getElementById('teacherSelect').innerHTML = teachers.map(t => `<option value="${t.id}">${t.name} — ${t.role}</option>`).join('');
+
+                // Server is awake! Fade out the loader smoothly.
+                const loader = document.getElementById('globalLoader');
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 1000);
+
+            } catch (e) {
+                // If the server is totally offline, alert the user and auto-retry
+                document.getElementById('loaderText').innerText = "CONNECTION TIMEOUT. RETRYING...";
+                document.getElementById('loaderText').classList.replace('text-blue-400', 'text-red-500');
+                setTimeout(() => location.reload(), 3000);
+            }
         }
 
         async function verifyLogin() {
@@ -259,7 +287,6 @@
             const data = await res.json();
             document.getElementById('rosterHeader').classList.remove('hidden');
 
-            // NOTICE THE NEW "this" PARAMETER IN updateM()
             document.getElementById('rosterContainer').innerHTML = data.roster.map(s => `
                 <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 grid grid-cols-4 items-center gap-2">
                     <div class="col-span-1 truncate"><p class="font-bold text-[11px] text-white">${s.name}</p><p class="text-[8px] text-slate-500 font-mono">${s.roll_no.slice(-5)}</p></div>
@@ -270,39 +297,23 @@
             `).join('');
         }
 
-        // --- NEW VISUAL FEEDBACK LOGIC ---
         async function updateM(roll, subId, val, type, inputElement) {
             let s1 = type === 's1' ? val : 0;
             let s2 = type === 's2' ? val : 0;
             let put = type === 'put' ? val : 0;
 
-            // Turn box gray while saving
             inputElement.style.backgroundColor = '#334155';
-
             try {
                 const res = await fetch(`${API}/update-marks?roll_no=${roll}&subject_id=${subId}&s1=${s1}&s2=${s2}&put=${put}`, { method: 'POST' });
-
                 if (res.ok) {
-                    // Turn box GREEN if successful!
-                    inputElement.style.backgroundColor = '#065f46'; // emerald-800
+                    inputElement.style.backgroundColor = '#065f46';
                     inputElement.style.color = '#ffffff';
-
-                    // Reset back to normal after 1 second
-                    setTimeout(() => {
-                        inputElement.style.backgroundColor = '';
-                        inputElement.style.color = '';
-                    }, 1000);
-                } else {
-                    // Turn red if failed
-                    inputElement.style.backgroundColor = '#7f1d1d'; // red-900
-                }
-            } catch (e) {
-                // Turn red on network crash
-                inputElement.style.backgroundColor = '#7f1d1d';
-                console.error(e);
-            }
+                    setTimeout(() => { inputElement.style.backgroundColor = ''; inputElement.style.color = ''; }, 1000);
+                } else inputElement.style.backgroundColor = '#7f1d1d';
+            } catch (e) { inputElement.style.backgroundColor = '#7f1d1d'; }
         }
 
+        // Initialize!
         loadTeachers();
     </script>
 </body>

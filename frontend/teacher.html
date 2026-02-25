@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Faculty ERP Portal | KNMIET</title>
+    <title>Faculty Command Center | KNMIET ERP</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         body {
             background: #020617;
@@ -20,288 +20,191 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        select,
-        option {
-            background-color: #0f172a !important;
-            color: white !important;
-        }
-
-        input::-webkit-outer-spin-button,
-        input::-webkit-inner-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
-        }
-
         input:-webkit-autofill {
             -webkit-box-shadow: 0 0 0 30px #0f172a inset !important;
             -webkit-text-fill-color: white !important;
-            transition: background-color 5000s ease-in-out 0s;
+        }
+
+        .custom-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 10px;
         }
     </style>
 </head>
 
-<body class="p-6 flex flex-col items-center min-h-screen" onload="loadTeachers()">
+<body class="p-4 md:p-8 flex flex-col items-center min-h-screen">
 
     <div id="loginGate"
-        class="max-w-md w-full mt-16 glass p-10 rounded-[2.5rem] text-center border-t-4 border-emerald-500">
-        <div class="bg-white p-3 rounded-2xl mb-8 inline-block shadow-lg">
-            <img src="knmiet-logo.webp" class="h-10 object-contain" alt="KNMIET"
-                onerror="this.src='knmiet-logo1494x375.webp'">
+        class="max-w-md w-full mt-12 p-10 glass rounded-[3rem] text-center border-t-4 border-blue-600 shadow-2xl">
+        <div class="bg-white p-4 rounded-2xl mb-8 inline-block shadow-lg">
+            <img src="knmiet-logo1494x375.webp" class="h-10 object-contain" alt="KNMIET Logo">
         </div>
-        <h2 class="text-2xl font-bold text-emerald-400 mb-1">Faculty Portal</h2>
-        <p class="text-[10px] text-slate-500 mb-6 uppercase tracking-widest font-bold">Secure Access</p>
+        <h2 class="text-2xl font-black text-white mb-2">Faculty Portal</h2>
+        <p class="text-[10px] text-slate-500 mb-8 uppercase tracking-widest font-bold">Secure Academic Access</p>
 
-        <select id="teacherSelect"
-            class="w-full bg-slate-900/80 border border-slate-700 p-4 rounded-xl mb-3 outline-none focus:border-emerald-500 text-white"></select>
-
-        <input type="password" id="teacherPin" placeholder="4-Digit PIN"
-            class="w-full bg-slate-900/80 border border-slate-700 p-4 rounded-xl mb-4 outline-none text-center font-mono tracking-widest focus:border-emerald-500 text-white"
-            maxlength="4">
-
-        <button onclick="login()"
-            class="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-xl font-bold transition-all shadow-lg text-white">AUTHENTICATE</button>
-        <p id="loginMsg" class="mt-4 text-xs font-bold text-red-400 h-4"></p>
+        <div class="space-y-4">
+            <select id="teacherSelect"
+                class="w-full bg-slate-900 border border-slate-700 p-4 rounded-2xl outline-none text-white focus:border-blue-500 transition-all"></select>
+            <input type="password" id="teacherPin" placeholder="Enter 4-Digit PIN"
+                class="w-full bg-slate-900 border border-slate-700 p-4 rounded-2xl text-center font-mono tracking-[1em] outline-none text-white focus:border-blue-500 transition-all">
+            <button onclick="verifyLogin()"
+                class="w-full bg-blue-600 py-4 rounded-2xl font-black hover:bg-blue-500 transition-all shadow-lg text-white mt-4 uppercase tracking-widest">Unlock
+                Dashboard</button>
+        </div>
     </div>
 
-    <div id="dashboard" class="w-full max-w-6xl hidden space-y-6">
+    <div id="portal" class="w-full max-w-6xl hidden space-y-8 animate-in fade-in duration-500">
 
-        <div class="glass p-6 rounded-3xl flex justify-between items-center border-b-4 border-emerald-500">
-            <div>
-                <h1 id="facultyNameDisplay" class="text-2xl font-black text-white">Welcome, Professor</h1>
-                <p id="facultyRoleDisplay" class="text-xs text-emerald-400 font-bold uppercase tracking-widest">Faculty
-                </p>
+        <div
+            class="flex flex-col md:flex-row justify-between items-center glass p-8 rounded-[2.5rem] border-b-4 border-blue-600 gap-6">
+            <div class="flex items-center gap-6">
+                <div class="bg-blue-600 p-4 rounded-2xl shadow-lg">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 id="facultyName" class="text-2xl font-black text-white">Professor</h1>
+                    <p class="text-xs text-blue-400 font-bold uppercase tracking-widest">Faculty Management System</p>
+                </div>
             </div>
             <button onclick="location.reload()"
-                class="text-xs bg-red-900/20 px-4 py-2 rounded-xl text-red-400 border border-red-900/50 hover:bg-red-900/40 font-bold">LOGOUT</button>
+                class="bg-red-900/20 px-8 py-3 rounded-2xl text-red-400 border border-red-900/50 hover:bg-red-600 hover:text-white transition-all font-black text-xs uppercase tracking-widest">Logout</button>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-            <div class="glass p-6 rounded-3xl space-y-4 lg:col-span-1 border-l-4 border-blue-500">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Select Assigned Class</h3>
-                <select id="subjectSelect"
-                    class="w-full bg-slate-900/80 border border-slate-700 p-3 rounded-xl outline-none text-white text-sm">
-                    <option value="" disabled selected>Select Subject...</option>
-                </select>
+            <div class="glass p-8 rounded-[3rem] border-t-4 border-emerald-500 flex flex-col h-full">
+                <h3 class="text-xs font-bold text-slate-400 uppercase mb-6 tracking-widest flex items-center gap-2">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> Live Class Control
+                </h3>
 
-                <div class="pt-4 border-t border-slate-800 space-y-3">
-                    <button onclick="startClass()"
-                        class="w-full bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-bold text-sm text-white transition-all shadow-md">GENERATE
-                        ATTENDANCE QR</button>
-                    <button onclick="openMarksPanel()"
-                        class="w-full bg-purple-600 hover:bg-purple-500 py-3 rounded-xl font-bold text-sm text-white transition-all shadow-md">ENTER
-                        EXAM MARKS</button>
-                    <button onclick="downloadExcel()"
-                        class="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-bold text-sm text-white transition-all shadow-md flex items-center justify-center gap-2">
-                        EXPORT TO EXCEL
+                <div class="space-y-6">
+                    <div>
+                        <label class="text-[10px] text-slate-500 font-bold uppercase ml-2 mb-2 block">Select Subject to
+                            Teach</label>
+                        <select id="subjectSelect"
+                            class="w-full bg-slate-900/80 p-4 rounded-2xl border border-slate-700 outline-none text-white focus:border-emerald-500 transition-all"></select>
+                    </div>
+
+                    <button onclick="generateQR()" id="qrBtn"
+                        class="w-full bg-emerald-600 py-5 rounded-2xl font-black text-sm hover:bg-emerald-500 transition-all shadow-xl text-white tracking-[0.2em] uppercase">
+                        Start Attendance Session
                     </button>
+
+                    <div id="qrContainer" class="mt-8 flex flex-col items-center hidden space-y-4">
+                        <div id="qrcode" class="p-6 bg-white rounded-[2rem] shadow-2xl"></div>
+                        <div class="text-center">
+                            <p class="text-emerald-400 font-black text-sm uppercase animate-bounce mt-4">Scan Now</p>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest">QR automatically binds to
+                                selected subject</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div id="workspace"
-                class="glass p-6 rounded-3xl lg:col-span-2 flex flex-col items-center justify-center min-h-[400px] border-t-4 border-slate-800 relative overflow-hidden overflow-x-auto">
-                <p class="text-slate-500 text-sm italic">Select a class and choose an action from the menu.</p>
-            </div>
+            <div class="glass p-8 rounded-[3rem] border-t-4 border-purple-500 flex flex-col h-full">
+                <h3 class="text-xs font-bold text-slate-400 uppercase mb-6 tracking-widest">Internal Assessment (S1, S2,
+                    PUT)</h3>
+                <button onclick="loadRoster()"
+                    class="w-full bg-purple-600/20 text-purple-400 border border-purple-900/50 py-4 rounded-2xl font-black text-xs hover:bg-purple-600 hover:text-white transition-all uppercase tracking-widest mb-6">
+                    Fetch Class Roster
+                </button>
 
+                <div id="rosterHeader"
+                    class="hidden grid grid-cols-4 text-[9px] text-slate-500 font-bold uppercase mb-2 px-4">
+                    <div class="col-span-1">Student</div>
+                    <div class="text-center">S1 (20)</div>
+                    <div class="text-center">S2 (40)</div>
+                    <div class="text-center">PUT (70)</div>
+                </div>
+
+                <div id="rosterContainer" class="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scroll">
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
         const API = "https://knmiet-attendance-core.onrender.com";
         let currentTeacherId = null;
-        let qrInterval = null;
-        let currentRoster = [];
 
         async function loadTeachers() {
             try {
-                const res = await fetch(`${API}/get-teachers?t=${Date.now()}`);
+                const res = await fetch(`${API}/get-teachers`);
                 const teachers = await res.json();
-                const sel = document.getElementById('teacherSelect');
-                sel.innerHTML = '<option value="" disabled selected>Select Your Name...</option>' +
-                    teachers.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
-            } catch (e) { document.getElementById('loginMsg').innerText = "Server connecting... Please wait."; }
+                document.getElementById('teacherSelect').innerHTML = teachers.map(t => `<option value="${t.id}">${t.name} — ${t.role}</option>`).join('');
+            } catch (e) { console.error("Failed to load teachers"); }
         }
 
-        async function login() {
-            const tid = document.getElementById('teacherSelect').value;
+        async function verifyLogin() {
+            const id = document.getElementById('teacherSelect').value;
             const pin = document.getElementById('teacherPin').value;
-            const msg = document.getElementById('loginMsg');
-
-            if (!tid || !pin) return msg.innerText = "Select name and enter PIN.";
-
             try {
-                const res = await fetch(`${API}/verify-teacher-pin?teacher_id=${tid}&entered_pin=${pin}`);
+                const res = await fetch(`${API}/verify-teacher-pin?teacher_id=${id}&entered_pin=${pin}`);
                 if (res.ok) {
-                    const data = await res.json();
-                    currentTeacherId = tid;
-
-                    const tName = document.getElementById('teacherSelect').options[document.getElementById('teacherSelect').selectedIndex].text;
-                    document.getElementById('facultyNameDisplay').innerText = `Welcome, ${tName}`;
-                    document.getElementById('facultyRoleDisplay').innerText = data.role;
-
+                    currentTeacherId = id;
+                    document.getElementById('facultyName').innerText = document.getElementById('teacherSelect').options[document.getElementById('teacherSelect').selectedIndex].text.split('—')[0];
                     document.getElementById('loginGate').classList.add('hidden');
-                    document.getElementById('dashboard').classList.remove('hidden');
-                    loadTeacherSubjects(tid);
-                } else { msg.innerText = "Invalid PIN."; }
-            } catch (e) { msg.innerText = "Network Error."; }
+                    document.getElementById('portal').classList.remove('hidden');
+                    loadSubjects();
+                } else { alert("ACCESS DENIED: Invalid PIN"); }
+            } catch (e) { alert("Server error"); }
         }
 
-        async function loadTeacherSubjects(tid) {
-            const res = await fetch(`${API}/teacher-subjects?teacher_id=${tid}&t=${Date.now()}`);
-            if (res.ok) {
-                const subjects = await res.json();
-                const sel = document.getElementById('subjectSelect');
-                sel.innerHTML = '<option value="" disabled selected>Select Subject...</option>' +
-                    subjects.map(s => `<option value="${s.id}">${s.code} - ${s.name} (${s.branch} Yr ${s.year})</option>`).join('');
-            }
-        }
-
-        function startClass() {
-            const subId = document.getElementById('subjectSelect').value;
-            if (!subId) return alert("Please select a subject first!");
-
-            clearInterval(qrInterval);
-            const workspace = document.getElementById('workspace');
-            workspace.className = "glass p-6 rounded-3xl lg:col-span-2 flex flex-col items-center justify-center min-h-[400px] border-t-4 border-blue-500 relative";
-
-            workspace.innerHTML = `
-                <div class="absolute top-0 right-0 bg-blue-600 text-[10px] font-black px-4 py-1 rounded-bl-xl tracking-widest uppercase text-white shadow-lg">LIVE ATTENDANCE</div>
-                <h2 class="text-xl font-bold text-blue-400 mb-6 uppercase tracking-widest">Scan to Mark Present</h2>
-                <div id="qrcode" class="p-4 bg-white rounded-2xl shadow-[0_0_30px_rgba(59,130,246,0.3)]"></div>
-                <p class="mt-6 text-xs text-slate-400 font-mono" id="qrTimer">Refreshing in 5s...</p>
-                <button onclick="stopClass()" class="mt-6 text-xs font-bold text-red-500 hover:text-red-400 uppercase tracking-widest border border-red-900/50 px-6 py-2 rounded-lg transition-all">END LECTURE</button>
-            `;
-            generateQR();
-            qrInterval = setInterval(generateQR, 5000);
+        async function loadSubjects() {
+            const res = await fetch(`${API}/teacher-subjects?teacher_id=${currentTeacherId}`);
+            const subjects = await res.json();
+            document.getElementById('subjectSelect').innerHTML = subjects.map(s => `<option value="${s.id}">${s.name} [${s.code}] — ${s.branch} Yr ${s.year}</option>`).join('');
         }
 
         async function generateQR() {
             const subId = document.getElementById('subjectSelect').value;
-            const res = await fetch(`${API}/generate-qr-string`);
-            const data = await res.json();
-            document.getElementById('qrcode').innerHTML = "";
-            new QRCode(document.getElementById('qrcode'), {
-                text: `${data.current_qr_string}|${subId}`,
-                width: 220, height: 220, colorDark: "#000000", colorLight: "#ffffff"
-            });
-        }
-
-        function stopClass() {
-            clearInterval(qrInterval);
-            document.getElementById('workspace').innerHTML = '<p class="text-slate-500 text-sm italic">Lecture Ended.</p>';
-        }
-
-        // --- NEW: THE MARKS GRADING SHEET ---
-        async function openMarksPanel() {
-            const subId = document.getElementById('subjectSelect').value;
-            if (!subId) return alert("Please select a subject first!");
-            clearInterval(qrInterval);
-
-            const workspace = document.getElementById('workspace');
-            workspace.className = "glass p-6 rounded-3xl lg:col-span-2 flex flex-col items-start justify-start min-h-[400px] border-t-4 border-purple-500 overflow-x-auto w-full";
-            workspace.innerHTML = `<p class="text-purple-400 animate-pulse">Fetching Secure Roster...</p>`;
-
+            const btn = document.getElementById('qrBtn');
             try {
-                const res = await fetch(`${API}/subject-roster?subject_id=${subId}&t=${Date.now()}`);
+                const res = await fetch(`${API}/generate-qr-string?subject_id=${subId}`);
                 const data = await res.json();
-                currentRoster = data.roster;
-
-                if (currentRoster.length === 0) {
-                    workspace.innerHTML = `<p class="text-slate-400">No approved students found for this class yet.</p>`;
-                    return;
-                }
-
-                let tableHTML = `
-                    <h2 class="text-xl font-bold text-purple-400 mb-4 uppercase tracking-widest w-full text-left">Grading Sheet: ${data.subject_name}</h2>
-                    <table class="w-full text-left border-collapse min-w-[600px]">
-                        <thead>
-                            <tr class="border-b border-slate-700 text-xs text-slate-400 uppercase tracking-widest">
-                                <th class="p-3">ERP ID</th>
-                                <th class="p-3">Name</th>
-                                <th class="p-3 text-center">S1 (20)</th>
-                                <th class="p-3 text-center">S2 (40)</th>
-                                <th class="p-3 text-center">PUT (70)</th>
-                                <th class="p-3 text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                `;
-
-                currentRoster.forEach(s => {
-                    tableHTML += `
-                        <tr class="border-b border-slate-800/50 hover:bg-slate-800/20">
-                            <td class="p-3 text-sm font-mono text-slate-300">${s.erp_id}</td>
-                            <td class="p-3 text-sm font-bold text-white">${s.name}</td>
-                            <td class="p-3 text-center"><input type="number" id="s1_${s.roll_no}" value="${s.s1}" class="w-16 bg-slate-900 border border-slate-700 text-center rounded p-1 text-sm outline-none focus:border-purple-500"></td>
-                            <td class="p-3 text-center"><input type="number" id="s2_${s.roll_no}" value="${s.s2}" class="w-16 bg-slate-900 border border-slate-700 text-center rounded p-1 text-sm outline-none focus:border-purple-500"></td>
-                            <td class="p-3 text-center"><input type="number" id="put_${s.roll_no}" value="${s.put}" class="w-16 bg-slate-900 border border-slate-700 text-center rounded p-1 text-sm outline-none focus:border-purple-500"></td>
-                            <td class="p-3 text-center"><button onclick="saveMarks('${s.roll_no}')" id="btn_${s.roll_no}" class="bg-purple-600 hover:bg-purple-500 text-[10px] font-bold px-3 py-1.5 rounded uppercase tracking-wider transition-all">Save</button></td>
-                        </tr>
-                    `;
-                });
-
-                tableHTML += `</tbody></table>`;
-                workspace.innerHTML = tableHTML;
-
-            } catch (e) {
-                workspace.innerHTML = `<p class="text-red-400">Failed to load roster.</p>`;
-            }
+                document.getElementById('qrContainer').classList.remove('hidden');
+                document.getElementById('qrcode').innerHTML = "";
+                new QRCode(document.getElementById("qrcode"), { text: `${data.current_qr_string}|${subId}`, width: 220, height: 220 });
+                btn.innerText = "SESSION ACTIVE";
+                btn.classList.replace('bg-emerald-600', 'bg-slate-800');
+            } catch (e) { alert("Failed to start class"); }
         }
 
-        async function saveMarks(rollNo) {
+        async function loadRoster() {
             const subId = document.getElementById('subjectSelect').value;
-            const s1 = document.getElementById(`s1_${rollNo}`).value || 0;
-            const s2 = document.getElementById(`s2_${rollNo}`).value || 0;
-            const put = document.getElementById(`put_${rollNo}`).value || 0;
-            const btn = document.getElementById(`btn_${rollNo}`);
-
-            btn.innerText = "Saving...";
-
-            try {
-                const res = await fetch(`${API}/update-marks?roll_no=${rollNo}&subject_id=${subId}&s1=${s1}&s2=${s2}&put=${put}`, { method: 'POST' });
-                if (res.ok) {
-                    btn.classList.replace('bg-purple-600', 'bg-emerald-500');
-                    btn.innerText = "Saved!";
-                    setTimeout(() => {
-                        btn.classList.replace('bg-emerald-500', 'bg-purple-600');
-                        btn.innerText = "Save";
-                    }, 2000);
-                }
-            } catch (e) {
-                btn.innerText = "Error";
-            }
-        }
-
-        // --- NEW: THE 1-CLICK EXCEL EXPORT ---
-        async function downloadExcel() {
-            const subId = document.getElementById('subjectSelect').value;
-            if (!subId) return alert("Please select a subject to export!");
-
-            // Fetch fresh data before downloading
-            const res = await fetch(`${API}/subject-roster?subject_id=${subId}&t=${Date.now()}`);
+            const res = await fetch(`${API}/subject-roster?subject_id=${subId}`);
             const data = await res.json();
-            const roster = data.roster;
-
-            if (roster.length === 0) return alert("No students to export.");
-
-            // Create CSV text format
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "ERP ID,Roll Number,Student Name,Sessional 1 (20),Sessional 2 (40),PUT Marks (70)\n";
-
-            roster.forEach(student => {
-                let row = `${student.erp_id},${student.roll_no},${student.name},${student.s1},${student.s2},${student.put}`;
-                csvContent += row + "\n";
-            });
-
-            // Trigger the browser download
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `KNMIET_Marks_${data.subject_name.replace(/\s+/g, '_')}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            document.getElementById('rosterHeader').classList.remove('hidden');
+            document.getElementById('rosterContainer').innerHTML = data.roster.map(s => `
+                <div class="bg-slate-900/40 p-4 rounded-2xl border border-slate-800 grid grid-cols-4 items-center gap-2">
+                    <div class="col-span-1">
+                        <p class="font-bold text-[11px] text-white truncate">${s.name}</p>
+                        <p class="text-[8px] text-slate-500 font-mono">${s.roll_no.slice(-5)}</p>
+                    </div>
+                    <input type="number" class="bg-slate-950 border border-slate-800 text-center text-xs p-2 rounded-xl text-purple-400 focus:border-purple-500 outline-none" value="${s.s1}" onchange="updateMarks('${s.roll_no}', ${subId}, this.value, 's1')">
+                    <input type="number" class="bg-slate-950 border border-slate-800 text-center text-xs p-2 rounded-xl text-purple-400 focus:border-purple-500 outline-none" value="${s.s2}" onchange="updateMarks('${s.roll_no}', ${subId}, this.value, 's2')">
+                    <input type="number" class="bg-slate-950 border border-slate-800 text-center text-xs p-2 rounded-xl text-purple-400 focus:border-purple-500 outline-none" value="${s.put}" onchange="updateMarks('${s.roll_no}', ${subId}, this.value, 'put')">
+                </div>
+            `).join('');
         }
+
+        async function updateMarks(roll, subId, val, type) {
+            let sessional1 = type === 's1' ? val : 0;
+            let sessional2 = type === 's2' ? val : 0;
+            let put = type === 'put' ? val : 0;
+
+            // Note: This logic assumes you update one at a time. The backend logic handles this.
+            await fetch(`${API}/update-marks?roll_no=${roll}&subject_id=${subId}&s1=${sessional1}&s2=${sessional2}&put=${put}`, { method: 'POST' });
+        }
+
+        loadTeachers();
     </script>
 </body>
 

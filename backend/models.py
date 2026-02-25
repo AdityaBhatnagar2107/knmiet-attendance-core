@@ -27,12 +27,14 @@ class Teacher(Base):
 class Subject(Base):
     __tablename__ = "subjects"
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String)                                 # e.g., "Operating System"
-    code = Column(String)                                 # e.g., "BCS401"
-    branch = Column(String)                               # e.g., "CSE"
-    year = Column(Integer)                                # e.g., 2
-    teacher_id = Column(Integer, ForeignKey("teachers.id")) # Links the Teacher to the Subject
+    name = Column(String)
+    code = Column(String, unique=True)
+    branch = Column(String)
+    year = Column(Integer)
+    teacher_id = Column(Integer, ForeignKey("teachers.id"))
+    total_lectures_held = Column(Integer, default=0) # <--- ADD THIS LINE
 
+    
 class Attendance(Base):
     __tablename__ = "attendance"
     id = Column(Integer, primary_key=True, index=True)

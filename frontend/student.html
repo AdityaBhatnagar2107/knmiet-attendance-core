@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Dashboard | KNMIET</title>
+    <title>Student ERP | KNMIET</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
@@ -19,54 +19,31 @@
             backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-
-        #reader {
-            width: 100%;
-            border-radius: 1.5rem;
-            overflow: hidden;
-        }
     </style>
 </head>
 
-<body class="p-4 md:p-8 flex flex-col items-center min-h-screen" onload="checkStatus()">
-
-    <div id="pendingView"
-        class="max-w-md w-full mt-20 glass p-10 rounded-[2.5rem] text-center hidden border-t-4 border-yellow-500">
-        <h2 class="text-2xl font-bold text-yellow-500 mb-2">Awaiting HOD Approval</h2>
-        <p class="text-slate-400 text-sm mb-6">Your registration is verified but pending final approval.</p>
-        <button onclick="location.reload()"
-            class="bg-yellow-600 px-8 py-3 rounded-xl text-white font-bold uppercase tracking-widest text-xs">Refresh
-            Status</button>
+<body class="p-4 md:p-8 flex flex-col items-center" onload="checkStatus()">
+    <div id="pendingView" class="hidden mt-20 glass p-10 rounded-[3rem] text-center border-t-4 border-yellow-500">
+        <h2 class="text-2xl font-bold text-yellow-500">Approval Pending</h2>
+        <button onclick="location.reload()" class="mt-4 bg-yellow-600 px-6 py-2 rounded-xl font-bold">Refresh</button>
     </div>
 
-    <div id="approvedView" class="w-full max-w-5xl hidden space-y-8 pb-24">
-
-        <div
-            class="glass p-8 rounded-[2.5rem] border-l-4 border-blue-500 flex flex-col md:flex-row justify-between items-center gap-6">
+    <div id="approvedView" class="hidden w-full max-w-5xl space-y-8">
+        <div class="glass p-8 rounded-[2.5rem] border-l-4 border-blue-500 flex justify-between items-center">
             <div>
-                <h1 id="sName" class="text-3xl font-black text-white">Student Name</h1>
-                <p id="sErp" class="text-blue-400 font-mono text-sm uppercase mt-1">ERP ID Loading...</p>
-                <p id="sBranch" class="text-slate-500 text-xs font-bold mt-2 uppercase tracking-widest"></p>
+                <h1 id="sName" class="text-2xl font-black">Student</h1>
+                <p id="sBranch" class="text-blue-400 text-xs font-bold uppercase"></p>
             </div>
-            <div class="text-center md:text-right">
-                <p class="text-[10px] text-slate-500 font-bold uppercase mb-1">Total Verified Lectures</p>
-                <p id="totalLecs" class="text-4xl font-black text-emerald-400">0</p>
+            <div class="text-right">
+                <p class="text-[10px] text-slate-500 font-bold uppercase">Total Attendance</p>
+                <p id="totalLecs" class="text-3xl font-black text-emerald-400">0</p>
             </div>
         </div>
-
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div class="space-y-6">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">Academic Progress</h3>
-                <div id="subjectList" class="space-y-4"></div>
-            </div>
-
-            <div class="space-y-6">
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest pl-2">Attendance Scanner</h3>
-                <div class="glass p-6 rounded-[2.5rem] border-t-4 border-slate-800">
-                    <div id="reader" class="shadow-inner shadow-slate-950"></div>
-                    <p id="scanMsg" class="mt-6 text-center text-xs font-bold uppercase tracking-widest text-slate-500">
-                    </p>
-                </div>
+            <div id="subjectList" class="space-y-4"></div>
+            <div class="glass p-6 rounded-[2.5rem] border-t-4 border-slate-800">
+                <div id="reader" class="rounded-3xl overflow-hidden"></div>
+                <p id="scanMsg" class="mt-4 text-center font-bold text-xs uppercase tracking-widest"></p>
             </div>
         </div>
     </div>
@@ -78,44 +55,27 @@
 
         async function checkStatus() {
             if (!roll) { window.location.href = "register.html"; return; }
-            try {
-                const res = await fetch(`${API}/student-profile?roll_no=${roll}`);
-                const data = await res.json();
-                if (data.is_approved) {
-                    document.getElementById('approvedView').classList.remove('hidden');
-                    document.getElementById('sName').innerText = data.name;
-                    document.getElementById('sErp').innerText = data.erp_id;
-                    document.getElementById('sBranch').innerText = `${data.branch} - Year ${data.year}`;
-                    document.getElementById('totalLecs').innerText = data.lectures;
-                    loadERPData(); startScanner();
-                } else { document.getElementById('pendingView').classList.remove('hidden'); }
-            } catch (e) { console.error("Network Error"); }
+            const res = await fetch(`${API}/student-profile?roll_no=${roll}`);
+            const data = await res.json();
+            if (data.is_approved) {
+                document.getElementById('approvedView').classList.remove('hidden');
+                document.getElementById('sName').innerText = data.name;
+                document.getElementById('sBranch').innerText = `${data.branch} - Yr ${data.year}`;
+                document.getElementById('totalLecs').innerText = data.total_lectures;
+                loadData(); startScanner();
+            } else document.getElementById('pendingView').classList.remove('hidden');
         }
 
-        async function loadERPData() {
+        async function loadData() {
             const res = await fetch(`${API}/student-erp-data?roll_no=${roll}`);
             const erp = await res.json();
-            document.getElementById('subjectList').innerHTML = erp.subjects.map(sub => {
-                let percent = sub.total_held > 0 ? Math.round((sub.attended / sub.total_held) * 100) : 0;
-                let color = percent >= 75 ? 'bg-emerald-500' : 'bg-red-500';
-                let textColor = percent >= 75 ? 'text-emerald-400' : 'text-red-500';
-
-                return `
-                <div class="glass p-6 rounded-3xl border border-slate-800">
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <p class="text-xs font-black text-blue-500 uppercase">${sub.code}</p>
-                            <p class="font-bold text-white">${sub.subject_name}</p>
-                        </div>
-                        <p class="${textColor} font-black text-lg">${percent}%</p>
-                    </div>
-                    <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
-                        <div class="${color} h-2 transition-all duration-1000" style="width: ${percent}%"></div>
-                    </div>
-                    <div class="grid grid-cols-3 gap-2 mt-6 border-t border-slate-800 pt-4">
-                        <div class="text-center"><p class="text-[8px] text-slate-500 uppercase">Sessional 1</p><p class="font-mono text-sm">${sub.s1}</p></div>
-                        <div class="text-center"><p class="text-[8px] text-slate-500 uppercase">Sessional 2</p><p class="font-mono text-sm">${sub.s2}</p></div>
-                        <div class="text-center"><p class="text-[8px] text-slate-500 uppercase">PUT Exam</p><p class="font-mono text-sm">${sub.put}</p></div>
+            document.getElementById('subjectList').innerHTML = erp.subjects.map(s => {
+                let p = s.total_held > 0 ? Math.round((s.attended / s.total_held) * 100) : 0;
+                return `<div class="glass p-6 rounded-3xl border border-slate-800">
+                    <div class="flex justify-between mb-2"><div><p class="text-xs font-bold text-blue-500">${s.code}</p><p class="font-bold">${s.subject_name}</p></div><p class="font-black ${p >= 75 ? 'text-emerald-400' : 'text-red-500'}">${p}%</p></div>
+                    <div class="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden"><div class="${p >= 75 ? 'bg-emerald-500' : 'bg-red-500'} h-full" style="width:${p}%"></div></div>
+                    <div class="grid grid-cols-3 gap-2 mt-4 text-[10px] text-slate-500 uppercase text-center">
+                        <div class="bg-slate-900/50 p-1 rounded">S1: ${s.s1}</div><div class="bg-slate-900/50 p-1 rounded">S2: ${s.s2}</div><div class="bg-slate-900/50 p-1 rounded">PUT: ${s.put}</div>
                     </div>
                 </div>`;
             }).join('');
@@ -125,12 +85,10 @@
             const scanner = new Html5Qrcode("reader");
             scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, async (txt) => {
                 scanner.pause();
-                const msg = document.getElementById('scanMsg');
-                msg.innerText = "Processing Hardware ID...";
-                const parts = txt.split('|');
-                const res = await fetch(`${API}/mark-attendance?roll_no=${roll}&qr_content=${parts[0]}&subject_id=${parts[1]}&device_id=${devID}`, { method: 'POST' });
-                if (res.ok) { msg.className = "text-emerald-400"; msg.innerText = "SUCCESS!"; setTimeout(() => location.reload(), 1500); }
-                else { const err = await res.json(); msg.className = "text-red-500"; msg.innerText = err.detail; setTimeout(() => scanner.resume(), 3000); }
+                const [q, subId] = txt.split('|');
+                const res = await fetch(`${API}/mark-attendance?roll_no=${roll}&qr_content=${q}&subject_id=${subId}&device_id=${devID}`, { method: 'POST' });
+                if (res.ok) { alert("Done!"); location.reload(); }
+                else { const e = await res.json(); alert(e.detail); scanner.resume(); }
             }, () => { });
         }
     </script>

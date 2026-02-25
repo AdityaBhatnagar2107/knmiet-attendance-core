@@ -3,7 +3,6 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Master Timetable | KNMIET</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -19,175 +18,161 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .tt-grid {
-            display: grid;
-            grid-template-columns: 120px repeat(8, 1fr);
-            gap: 4px;
-        }
-
-        .tt-cell {
-            background: #0f172a;
-            border: 1px solid #1e293b;
-            padding: 10px;
-            text-align: center;
-            border-radius: 8px;
-            font-size: 13px;
-        }
-
-        .tt-header {
-            background: #1e293b;
-            font-weight: bold;
-            color: #94a3b8;
-            text-transform: uppercase;
-            font-size: 11px;
-            letter-spacing: 1px;
-        }
-
-        .break-cell {
-            background: #334155 !important;
-        }
-
-        .break-cell input {
-            color: #fbbf24 !important;
-            font-weight: bold;
-        }
-
-        input.cell-input {
+        table {
+            border-collapse: collapse;
             width: 100%;
-            background: transparent;
-            border: none;
             text-align: center;
-            color: #e2e8f0;
-            outline: none;
-            transition: 0.2s;
         }
 
-        input.cell-input:focus {
-            background: #1e293b;
-            border-radius: 4px;
-            padding: 4px;
-            color: #60a5fa;
+        th,
+        td {
+            border: 1px solid #334155;
+            padding: 1rem;
+            font-size: 0.875rem;
+        }
+
+        th {
+            background: #0f172a;
+            color: #94a3b8;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        td[contenteditable="true"] {
+            background: rgba(59, 130, 246, 0.05);
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        td[contenteditable="true"]:focus {
+            background: rgba(59, 130, 246, 0.15);
+            box-shadow: inset 0 0 0 2px #3b82f6;
         }
     </style>
 </head>
 
-<body class="p-6">
-    <div class="max-w-7xl mx-auto space-y-6">
+<body class="p-8">
+    <div class="max-w-7xl mx-auto space-y-8">
 
-        <div
-            class="glass p-6 rounded-3xl flex flex-col md:flex-row justify-between items-center border-t-4 border-blue-500 gap-4">
-            <div class="flex items-center gap-4">
-                <img src="knmiet-logo.webp" class="h-10 bg-white p-2 rounded-xl shadow-lg"
-                    onerror="this.src='knmiet-logo1494x375.webp'">
-                <div>
-                    <h1 class="text-2xl font-black text-white">Master Timetable</h1>
-                    <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest">HOD Control Interface</p>
-                </div>
+        <div class="flex justify-between items-center glass p-8 rounded-[2.5rem] border-l-4 border-blue-500">
+            <div>
+                <h1 class="text-3xl font-black">Timetable Manager</h1>
+                <p class="text-xs text-blue-400 font-bold uppercase tracking-widest mt-1">Grid Publishing System</p>
             </div>
-            <select id="branchYear"
-                class="bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none focus:border-blue-500 text-sm font-bold w-full md:w-auto text-white"
-                onchange="loadTimetable()">
-                <option value="CSE-1">CSE - 1st Year</option>
-                <option value="CSE-2" selected>CSE - 2nd Year</option>
-                <option value="CSE-3">CSE - 3rd Year</option>
-                <option value="CSE-4">CSE - 4th Year</option>
-                <option value="IT-1">IT - 1st Year</option>
-            </select>
+            <a href="admin.html"
+                class="bg-slate-800 px-6 py-3 rounded-xl text-xs font-bold hover:bg-slate-700 transition-all uppercase tracking-widest">➔
+                Back</a>
         </div>
 
-        <div class="glass p-6 rounded-3xl overflow-x-auto shadow-2xl">
-            <div id="gridContainer" class="min-w-[1000px]">
-            </div>
+        <div class="glass p-6 rounded-3xl border-t-4 border-slate-800 flex gap-4 items-center">
+            <select id="ttBranch"
+                class="bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none text-white w-1/3">
+                <option value="CSE">Computer Science (CSE)</option>
+                <option value="IT">Information Tech (IT)</option>
+            </select>
+            <select id="ttYear"
+                class="bg-slate-900 border border-slate-700 p-3 rounded-xl outline-none text-white w-1/3">
+                <option value="1">1st Year</option>
+                <option value="2">2nd Year</option>
+                <option value="3">3rd Year</option>
+                <option value="4">4th Year</option>
+            </select>
+            <button onclick="loadGrid()"
+                class="w-1/3 bg-blue-600 py-3 rounded-xl font-bold hover:bg-blue-500 transition-all text-white shadow-lg uppercase tracking-widest text-sm">Load
+                Grid</button>
+        </div>
 
-            <div class="mt-6 flex justify-between items-center border-t border-slate-800 pt-6">
-                <p class="text-xs text-slate-500 italic">* Faculty/Students view this live. Enter Admin Key to publish
-                    changes.</p>
-                <div class="flex gap-2">
-                    <input type="password" id="adminKey" placeholder="HOD Admin Key"
-                        class="bg-slate-900 border border-slate-700 p-3 rounded-xl text-sm outline-none text-center focus:border-blue-500 text-white">
-                    <button onclick="saveTimetable()" id="saveBtn"
-                        class="bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-xl font-black text-sm transition-all shadow-lg text-white tracking-wider">PUBLISH</button>
-                </div>
+        <div class="glass p-8 rounded-[3rem] overflow-x-auto shadow-2xl border border-slate-800">
+            <div id="gridContainer">
+                <p class="text-center text-slate-500 italic py-10">Select Branch and Year, then click "Load Grid" to
+                    begin editing.</p>
             </div>
+            <button id="saveBtn" onclick="saveGrid()"
+                class="hidden w-full mt-8 bg-emerald-600 py-4 rounded-2xl font-black text-white hover:bg-emerald-500 transition-all shadow-lg uppercase tracking-widest">PUBLISH
+                TO STUDENTS</button>
         </div>
     </div>
 
     <script>
         const API = "https://knmiet-attendance-core.onrender.com";
+        const key = localStorage.getItem('admin_key');
+
+        if (!key) {
+            alert("Admin session missing. Redirecting to login.");
+            window.location.href = "admin.html";
+        }
+
         const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
-        // Dynamically draws the grid
-        function buildGrid(data = null) {
-            let html = `<div class="tt-grid mb-2">
-                <div class="tt-cell tt-header flex items-center justify-center">DAY</div>
-                ${[1, 2, 3, 4, 5, 6, 7, 8].map(s => `<div class="tt-cell tt-header">Slot ${s}</div>`).join('')}
-            </div>`;
+        function generateEmptyGrid() {
+            let html = `<table><thead><tr><th>Day / Time</th><th>09:00 - 10:00</th><th>10:00 - 11:00</th><th>11:00 - 12:00</th><th>12:00 - 01:00</th><th class="bg-slate-800 text-slate-400">01:00 - 01:40</th><th>01:40 - 02:40</th><th>02:40 - 03:40</th><th>03:40 - 04:40</th></tr></thead><tbody>`;
 
-            days.forEach((day, dIdx) => {
-                html += `<div class="tt-grid mb-2">
-                    <div class="tt-cell tt-header flex items-center justify-center text-slate-300">${day}</div>`;
-
-                for (let s = 1; s <= 8; s++) {
-                    let cellId = `c_${dIdx}_${s}`;
-                    // Automatically populates Slot 5 with Lunch unless overridden
-                    let val = data ? (data[cellId] || "") : (s === 5 ? "LUNCH BREAK" : "");
-                    let isBreak = s === 5 ? "break-cell" : "";
-                    html += `<div class="tt-cell ${isBreak}"><input type="text" id="${cellId}" class="cell-input" value="${val}" placeholder="Free"></div>`;
-                }
-                html += `</div>`;
+            days.forEach(day => {
+                html += `<tr><td class="font-bold bg-slate-900">${day}</td>`;
+                for (let i = 0; i < 4; i++) html += `<td contenteditable="true"></td>`;
+                html += `<td class="bg-slate-800/50 font-bold text-[10px] text-slate-500 tracking-widest">LUNCH</td>`;
+                for (let i = 0; i < 3; i++) html += `<td contenteditable="true"></td>`;
+                html += `</tr>`;
             });
-            document.getElementById('gridContainer').innerHTML = html;
+            html += `</tbody></table>`;
+            return html;
         }
 
-        // Fetches from Postgres Database
-        async function loadTimetable() {
-            const by = document.getElementById('branchYear').value;
-            try {
-                const res = await fetch(`${API}/get-timetable?branch_year=${by}`);
-                const data = await res.json();
-                if (data.exists) {
-                    buildGrid(JSON.parse(data.grid_data));
-                } else {
-                    buildGrid(); // Generate empty grid
-                }
-            } catch (e) { buildGrid(); }
+        async function loadGrid() {
+            const branch = document.getElementById('ttBranch').value;
+            const year = document.getElementById('ttYear').value;
+            const branchYearStr = `${branch}-${year}`; // e.g., CSE-2 (Matches Student side exactly)
+
+            const res = await fetch(`${API}/get-timetable?branch_year=${branchYearStr}`);
+            const data = await res.json();
+
+            const container = document.getElementById('gridContainer');
+            if (data.exists && data.grid_data) {
+                container.innerHTML = data.grid_data;
+                // Re-enable editing for Admin
+                container.querySelectorAll('td').forEach(td => {
+                    if (td.innerText !== "LUNCH" && !td.classList.contains('font-bold')) {
+                        td.setAttribute('contenteditable', 'true');
+                    }
+                });
+            } else {
+                container.innerHTML = generateEmptyGrid();
+            }
+
+            document.getElementById('saveBtn').classList.remove('hidden');
         }
 
-        // Saves to Postgres Database
-        async function saveTimetable() {
-            const by = document.getElementById('branchYear').value;
-            const key = document.getElementById('adminKey').value;
-            if (!key) return alert("Admin Key required to publish!");
+        async function saveGrid() {
+            const branch = document.getElementById('ttBranch').value;
+            const year = document.getElementById('ttYear').value;
+            const branchYearStr = `${branch}-${year}`;
 
-            const btn = document.getElementById('saveBtn');
-            btn.innerText = "SAVING...";
-
-            let gridData = {};
-            days.forEach((day, dIdx) => {
-                for (let s = 1; s <= 8; s++) {
-                    let id = `c_${dIdx}_${s}`;
-                    gridData[id] = document.getElementById(id).value;
-                }
-            });
+            const htmlData = document.getElementById('gridContainer').innerHTML;
 
             try {
-                const res = await fetch(`${API}/save-timetable?branch_year=${by}&grid_data=${encodeURIComponent(JSON.stringify(gridData))}&admin_key=${key}`, { method: 'POST' });
-                if (res.ok) {
-                    btn.classList.replace('bg-blue-600', 'bg-emerald-500');
-                    btn.innerText = "PUBLISHED!";
-                    setTimeout(() => { btn.classList.replace('bg-emerald-500', 'bg-blue-600'); btn.innerText = "PUBLISH"; }, 3000);
+                const res = await fetch(`${API}/save-timetable`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    // URL params for POST in FastAPI
+                    body: JSON.stringify({}),
+                });
+
+                // Since we are using query params in FastAPI, we need to send it via URL
+                const queryParams = `branch_year=${encodeURIComponent(branchYearStr)}&grid_data=${encodeURIComponent(htmlData)}&admin_key=${encodeURIComponent(key)}`;
+
+                const finalRes = await fetch(`${API}/save-timetable?${queryParams}`, { method: 'POST' });
+
+                if (finalRes.ok) {
+                    alert(`Timetable Published for ${branchYearStr}! Students can now see it.`);
                 } else {
-                    alert("Access Denied: Invalid Admin Key.");
-                    btn.innerText = "PUBLISH";
+                    const err = await finalRes.json();
+                    alert(`Publish failed: ${err.detail || 'Server error'}`);
                 }
             } catch (e) {
-                alert("Network Error");
-                btn.innerText = "PUBLISH";
+                alert(`Error: ${e.message}`);
             }
         }
-
-        buildGrid();
-        loadTimetable();
     </script>
 </body>
 

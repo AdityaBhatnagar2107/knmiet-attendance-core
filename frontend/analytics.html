@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Department Analytics | KNMIET</title>
+    <title>HOD Analytics | KNMIET</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -16,30 +16,30 @@
 
 <body class="p-8" onload="loadAnalytics()">
     <div class="max-w-7xl mx-auto space-y-8">
-
-        <div class="flex justify-between items-center p-8 glass rounded-[2.5rem] border-l-4 border-blue-500">
+        <div
+            class="flex flex-col md:flex-row justify-between items-center p-8 glass rounded-[2.5rem] border-l-4 border-blue-600 bg-slate-900/50 backdrop-blur-xl">
             <div>
-                <h1 class="text-3xl font-black">HOD Analytics Dashboard</h1>
-                <p class="text-xs text-blue-400 font-bold uppercase tracking-widest mt-1">Real-Time Student Monitoring
-                </p>
+                <h1 id="roleTitle" class="text-3xl font-black">Analytics Dashboard</h1>
+                <p class="text-xs text-blue-400 font-bold uppercase tracking-widest mt-1">Student Monitoring System</p>
             </div>
-            <div class="flex gap-4">
-                <input type="text" id="search" placeholder="Search by Name/Roll..." oninput="filter()"
-                    class="bg-slate-900 border border-slate-700 p-3 rounded-xl text-xs outline-none focus:border-blue-500 w-64 text-white">
+            <div class="flex gap-4 mt-4 md:mt-0">
+                <input type="text" id="q" oninput="filter()" placeholder="Search Name/Roll..."
+                    class="bg-slate-950 p-3 rounded-xl border border-slate-700 text-xs outline-none w-64 text-white focus:border-blue-500 transition-all">
                 <a href="admin.html"
-                    class="bg-slate-800 px-6 py-3 rounded-xl text-xs font-bold hover:bg-slate-700 transition-all uppercase tracking-widest">➔
+                    class="bg-slate-800 hover:bg-slate-700 transition-all px-6 py-3 rounded-xl text-xs font-bold flex items-center gap-2 uppercase tracking-widest">➔
                     Back</a>
             </div>
         </div>
 
-        <div class="glass rounded-[2.5rem] overflow-hidden border border-slate-800 shadow-2xl">
+        <div class="bg-slate-900/40 rounded-[2.5rem] overflow-hidden border border-slate-800 shadow-2xl">
             <table class="w-full text-left">
-                <thead class="bg-slate-900/80">
-                    <tr class="text-[10px] text-slate-500 uppercase tracking-widest border-b border-slate-800">
-                        <th class="p-6">Student Information</th>
-                        <th class="p-6">Branch & Year</th>
-                        <th class="p-6 text-center">Total Attendance</th>
-                        <th class="p-6 text-right">Hardware Control</th>
+                <thead
+                    class="bg-slate-950 text-slate-400 text-[10px] uppercase tracking-widest border-b border-slate-800">
+                    <tr>
+                        <th class="p-6">Student Info</th>
+                        <th class="p-6">Department</th>
+                        <th class="p-6 text-center">Overall %</th>
+                        <th class="p-6 text-right">Administrative Actions</th>
                     </tr>
                 </thead>
                 <tbody id="analyticsBody" class="divide-y divide-slate-800/50"></tbody>
@@ -47,49 +47,205 @@
         </div>
     </div>
 
+    <div id="dossier"
+        class="hidden fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
+        <div class="bg-slate-900 max-w-2xl w-full p-8 rounded-[3rem] border-t-4 border-blue-500 shadow-2xl relative">
+            <button onclick="closeD()"
+                class="absolute top-8 right-8 text-slate-500 hover:text-white transition-all font-black">✕</button>
+            <h2 class="text-3xl font-black mb-1">Academic Dossier</h2>
+            <p id="dStudentName" class="text-blue-400 font-bold uppercase tracking-widest text-xs mb-8"></p>
+
+            <div id="dContent" class="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scroll">
+            </div>
+        </div>
+    </div>
+
     <script>
         const API = "https://knmiet-attendance-core.onrender.com";
         const key = localStorage.getItem('admin_key') || "KNM@2026!Admin";
-        let allStudents = [];
+        let allS = [];
 
         async function loadAnalytics() {
             try {
+                // Determine if HOD or Coordinator (For future expansion, currently fetches all based on key)
                 const res = await fetch(`${API}/all-students-analytics?admin_key=${key}`);
-                allStudents = await res.json();
-                render(allStudents);
-            } catch (e) { alert("Verification Failed. Please log in again."); }
+                if (!res.ok) throw new Error("Auth Failed");
+
+                allS = await res.json();
+
+                // Fetch full ERP data for each student to calculate their overall percentage
+                // (In a massive production app, the backend would pre-calculate this, but we do it dynamically here)
+                for (let s of allS) {
+                    const erpRes = await fetch(`${API}/student-erp-data?roll_no=${s.roll_no}`);
+                    const erpData = await erpRes.json();
+
+                    let totalHeld = 0;
+                    let totalAtt = 0;
+                    erpData.subjects.forEach(sub => {
+                        totalHeld += (sub.total_held || 0);
+                        totalAtt += sub.attended;
+                    });
+
+                    s.overall_percent = totalHeld > 0 ? Math.round((totalAtt / totalHeld) * 100) : 0;
+                    s.erpData = erpData; // Store for dossier and warning letters
+                }
+
+                render(allS);
+            } catch (e) {
+                console.error(e);
+                alert("Session Expired. Please login via Admin panel.");
+            }
         }
 
         function render(list) {
-            document.getElementById('analyticsBody').innerHTML = list.map(s => `
-                <tr class="hover:bg-blue-900/5 transition-all">
+            document.getElementById('analyticsBody').innerHTML = list.map(s => {
+                const isShort = s.overall_percent < 75;
+                const pColor = isShort ? 'text-red-500' : 'text-emerald-400';
+                const rowBg = isShort ? 'bg-red-950/10 hover:bg-red-950/20' : 'hover:bg-blue-900/5';
+
+                return `
+                <tr class="transition-all ${rowBg}">
                     <td class="p-6">
-                        <p class="font-bold text-white text-sm">${s.name}</p>
-                        <p class="text-[10px] font-mono text-slate-500 mt-1">ROLL: ${s.roll_no} | ERP: ${s.erp_id}</p>
+                        <p class="font-bold text-sm text-white">${s.name}</p>
+                        <p class="text-[10px] text-slate-500 font-mono tracking-widest mt-1">ROLL: ${s.roll_no}</p>
                     </td>
                     <td class="p-6">
-                        <span class="bg-blue-900/30 text-blue-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase">${s.branch} Yr ${s.year}</span>
+                        <span class="bg-slate-800 text-slate-300 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">${s.branch} - YR ${s.year}</span>
                     </td>
                     <td class="p-6 text-center">
-                        <p class="text-lg font-black text-emerald-400">${s.total_lectures}</p>
-                        <p class="text-[8px] text-slate-500 uppercase font-bold">Total Lectures</p>
+                        <p class="text-2xl font-black ${pColor}">${s.overall_percent}%</p>
+                        <p class="text-[8px] uppercase text-slate-500 font-bold">${s.total_lectures} Total Scans</p>
                     </td>
-                    <td class="p-6 text-right">
-                        <button onclick="resetDevice('${s.roll_no}')" class="bg-orange-600/20 text-orange-400 border border-orange-900/50 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tighter hover:bg-orange-600 hover:text-white transition-all">Reset Device ID</button>
+                    <td class="p-6 text-right space-x-2">
+                        ${isShort ? `<button onclick="generateWarning('${s.roll_no}', '${s.name}', '${s.branch}', ${s.year}, ${s.overall_percent})" class="text-[9px] bg-red-600/20 text-red-500 border border-red-900/50 px-3 py-2 rounded-lg font-black tracking-widest uppercase hover:bg-red-600 hover:text-white transition-all">Issue Warning</button>` : ''}
+                        <button onclick="viewD('${s.roll_no}', '${s.name}')" class="text-[9px] bg-blue-600 px-4 py-2 rounded-lg font-black tracking-widest uppercase hover:bg-blue-500 transition-all text-white">Dossier</button>
                     </td>
-                </tr>`).join('');
+                </tr>`;
+            }).join('');
         }
 
         function filter() {
-            const q = document.getElementById('search').value.toLowerCase();
-            render(allStudents.filter(s => s.name.toLowerCase().includes(q) || s.roll_no.includes(q)));
+            const q = document.getElementById('q').value.toLowerCase();
+            render(allS.filter(s => s.name.toLowerCase().includes(q) || s.roll_no.includes(q)));
         }
 
-        async function resetDevice(roll) {
-            if (confirm("This will allow the student to register from a new phone. Continue?")) {
-                await fetch(`${API}/reset-student-device?roll_no=${roll}&admin_key=${key}`, { method: 'POST' });
-                alert("Device security lock released."); loadAnalytics();
-            }
+        // --- DOSSIER LOGIC ---
+        function viewD(roll, name) {
+            const s = allS.find(st => st.roll_no === roll);
+            document.getElementById('dStudentName').innerText = `${name} | ${roll}`;
+
+            document.getElementById('dContent').innerHTML = s.erpData.subjects.map(sub => {
+                let p = sub.total_held > 0 ? Math.round((sub.attended / sub.total_held) * 100) : 0;
+                let c = p >= 75 ? 'text-emerald-400' : 'text-red-500';
+
+                return `
+                <div class="bg-slate-950/50 p-5 rounded-[2rem] border border-slate-800/80">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <p class="text-[10px] text-blue-500 font-bold tracking-widest uppercase">${sub.code}</p>
+                            <p class="font-bold text-sm text-white">${sub.subject_name}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="${c} font-black text-xl">${p}%</p>
+                            <p class="text-[9px] text-slate-500 uppercase">${sub.attended}/${sub.total_held} Attended</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-[10px] font-black uppercase tracking-widest text-center">
+                        <div class="bg-slate-900 py-2 rounded-xl text-slate-400">S1: <span class="text-white">${sub.s1}</span></div>
+                        <div class="bg-slate-900 py-2 rounded-xl text-slate-400">S2: <span class="text-white">${sub.s2}</span></div>
+                        <div class="bg-slate-900 py-2 rounded-xl text-slate-400">PUT: <span class="text-white">${sub.put}</span></div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            document.getElementById('dossier').classList.remove('hidden');
+        }
+        function closeD() { document.getElementById('dossier').classList.add('hidden'); }
+
+        // --- AUTOMATED WARNING LETTER GENERATOR ---
+        function generateWarning(roll, name, branch, year, percent) {
+            const s = allS.find(st => st.roll_no === roll);
+            const date = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            // Build Subject Table for the PDF
+            let rows = s.erpData.subjects.map(sub => {
+                let p = sub.total_held > 0 ? Math.round((sub.attended / sub.total_held) * 100) : 0;
+                return `<tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${sub.code}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${sub.subject_name}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; text-align:center;">${sub.attended} / ${sub.total_held}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; text-align:center; color:${p < 75 ? 'red' : 'green'}; font-weight:bold;">${p}%</td>
+                </tr>`;
+            }).join('');
+
+            // Open a new tab and inject the printable HTML
+            const printWin = window.open('', '_blank');
+            printWin.document.write(`
+                <html>
+                <head>
+                    <title>Short Attendance Notice - ${roll}</title>
+                    <style>
+                        body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #111; max-width: 800px; margin: 0 auto; line-height: 1.6; }
+                        .header { text-align: center; border-bottom: 2px solid #111; padding-bottom: 20px; margin-bottom: 40px; }
+                        h1 { margin: 0; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
+                        h2 { margin: 5px 0 0 0; font-size: 14px; color: #555; font-weight: normal; }
+                        .title { text-align: center; font-weight: bold; font-size: 18px; text-decoration: underline; margin-bottom: 30px; }
+                        .info-grid { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 30px; font-size: 14px; }
+                        table { width: 100%; border-collapse: collapse; margin: 30px 0; font-size: 13px; }
+                        th { background: #f4f4f4; padding: 12px 10px; border: 1px solid #ddd; text-align: left; text-transform: uppercase; }
+                        .footer { margin-top: 80px; display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; }
+                        .sig-line { border-top: 1px solid #111; padding-top: 10px; width: 220px; text-align: center; }
+                        @media print { body { padding: 0; } @page { margin: 20mm; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>Dr. K. N. Modi Institute of Engineering & Technology</h1>
+                        <h2>Modinagar, Ghaziabad, Uttar Pradesh 201204</h2>
+                        <h2>Approved by AICTE & Affiliated to AKTU, Lucknow</h2>
+                    </div>
+                    
+                    <div class="title">NOTICE OF SHORT ATTENDANCE</div>
+                    
+                    <div class="info-grid">
+                        <div>
+                            <strong>To:</strong> ${name}<br>
+                            <strong>Roll Number:</strong> ${roll}<br>
+                            <strong>Course:</strong> B.Tech (${branch}) - Year ${year}
+                        </div>
+                        <div style="text-align: right;">
+                            <strong>Date:</strong> ${date}
+                        </div>
+                    </div>
+
+                    <p>Dear Student / Parent,</p>
+                    <p>This is to bring to your immediate attention that your overall academic attendance is currently at <strong style="color:red; font-size: 16px;">${percent}%</strong>. This falls severely below the minimum <strong>75% mandatory requirement</strong> stipulated by Dr. A.P.J. Abdul Kalam Technical University (AKTU).</p>
+                    
+                    <p>Below is your detailed subject-wise attendance breakdown as recorded in the central ERP system:</p>
+
+                    <table>
+                        <thead>
+                            <tr><th>Subject Code</th><th>Subject Name</th><th style="text-align:center;">Lectures Attended</th><th style="text-align:center;">Percentage</th></tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+
+                    <p>You are hereby strictly directed to attend all scheduled lectures, tutorials, and practical sessions without fail. Failure to improve your attendance to the required 75% threshold will result in strict disciplinary action, including <strong>debarment from the upcoming University Sessional and End-Semester Examinations</strong>.</p>
+                    <p>Parents are advised to monitor the student's daily attendance via the KNMIET Student Portal to avoid academic loss.</p>
+
+                    <div class="footer">
+                        <div class="sig-line">Signature of Class Coordinator</div>
+                        <div class="sig-line">Signature of Head of Department</div>
+                    </div>
+
+                    <script>
+                        // Automatically trigger the print dialog when the window loads
+                        window.onload = function() { setTimeout(() => { window.print(); }, 500); }
+                    <\/script>
+                </body>
+                </html>
+            `);
+            printWin.document.close();
         }
     </script>
 </body>

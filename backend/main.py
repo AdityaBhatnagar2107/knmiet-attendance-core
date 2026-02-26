@@ -47,13 +47,10 @@ async def register(erp_id: str, roll_no: str, name: str, branch: str, year: int,
             existing.name = name; existing.branch = branch; existing.year = year; existing.section = section; existing.registered_device = device_id; existing.status = "Pending"
             db.commit()
             return {"status": "success", "message": "Re-application submitted."}
-        
-        # THE DEVICE RESET TRIGGER
         if existing.registered_device == "PENDING_RESET":
             existing.registered_device = device_id
             db.commit()
             return {"status": "success", "message": "New Device Linked Successfully!"}
-            
         if existing.name.strip().lower() == name.strip().lower(): return {"status": "success", "message": "Welcome back!"}
         raise HTTPException(status_code=403, detail="Roll Number already registered to another device!")
     
@@ -81,18 +78,36 @@ async def student_erp(roll_no: str, db: Session = Depends(database.get_db)):
         data.append({"subject_name": sub.name, "code": sub.code, "attended": att, "total_held": sub.total_lectures_held or 0, "s1": m.sessional_1 if m else 0, "s2": m.sessional_2 if m else 0, "put": m.put_marks if m else 0})
     return {"subjects": data, "overall_attended": s.total_lectures}
 
+# NEW: DATE MATRIX ROUTE
+@app.get("/student-attendance-history")
+async def student_history(roll_no: str, db: Session = Depends(database.get_db)):
+    student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
+    if not student: raise HTTPException(status_code=404)
+    
+    subjects = db.query(models.Subject).filter(models.Subject.branch == student.branch, models.Subject.year == student.year, models.Subject.section == student.section).all()
+    attendance_records = db.query(models.Attendance).filter(models.Attendance.student_roll == roll_no).order_by(models.Attendance.timestamp.desc()).all()
+    
+    history_by_date = {}
+    for record in attendance_records:
+        date_str = record.timestamp.strftime("%d-%m-%y")
+        if date_str not in history_by_date: history_by_date[date_str] = []
+        history_by_date[date_str].append(record.subject_id)
+        
+    return {
+        "subjects": [{"id": s.id, "code": s.code} for s in subjects],
+        "history": history_by_date
+    }
+
 @app.post("/mark-attendance")
 async def mark_attendance(roll_no: str, qr_content: str, subject_id: int, device_id: str, db: Session = Depends(database.get_db)):
     global current_qr_string
     if qr_content != current_qr_string: raise HTTPException(status_code=400, detail="QR Expired!")
-    
     student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
     if not student or student.status != "Approved": raise HTTPException(status_code=403, detail="Director Approval Required")
     if student.registered_device != device_id: raise HTTPException(status_code=403, detail="Device ID Security Mismatch")
     
     subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
     if not subject: raise HTTPException(status_code=404, detail="Subject not found")
-
     if student.branch != subject.branch or student.year != subject.year or student.section != subject.section:
         raise HTTPException(status_code=403, detail=f"Access Denied! You belong to {student.branch} YR {student.year} Sec {student.section}")
     
@@ -105,7 +120,7 @@ async def mark_attendance(roll_no: str, qr_content: str, subject_id: int, device
     db.commit()
     return {"status": "Success"}
 
-# --- DIRECTOR ROUTES ---
+# --- ADMIN ROUTES ---
 @app.get("/pending-students")
 async def get_pending(admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
@@ -118,7 +133,6 @@ async def update_status(roll_no: str, status: str, admin_key: str, db: Session =
     if student: student.status = status; db.commit(); db.refresh(student)
     return {"message": f"Student {status}"}
 
-# --- NEW: RESET DEVICE ROUTE ---
 @app.post("/reset-student-device")
 async def reset_device(roll_no: str, admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
@@ -200,17 +214,3 @@ async def update_m(roll_no: str, subject_id: int, s1: float, s2: float, put: flo
     if put > 0: m.put_marks = put
     db.commit()
     return {"message": "Saved"}
-
-@app.get("/get-timetable")
-async def get_tt(branch_year: str, db: Session = Depends(database.get_db)):
-    tt = db.query(models.Timetable).filter_by(branch_year=branch_year).first()
-    return {"exists": True, "grid_data": tt.grid_data} if tt else {"exists": False}
-
-@app.post("/save-timetable")
-async def save_tt(branch_year: str, grid_data: str, admin_key: str, db: Session = Depends(database.get_db)):
-    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
-    tt = db.query(models.Timetable).filter_by(branch_year=branch_year).first()
-    if not tt: db.add(models.Timetable(branch_year=branch_year, grid_data=grid_data))
-    else: tt.grid_data = grid_data
-    db.commit()
-    return {"status": "success"}

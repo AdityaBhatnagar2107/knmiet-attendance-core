@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Master Admin | KNMIET</title>
+    <title>Director's Terminal | KNMIET</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -32,103 +32,115 @@
 <body class="p-6" onload="wakeServer()">
     <div id="globalLoader"
         class="fixed inset-0 bg-[#020617] z-[9999] flex flex-col items-center justify-center transition-opacity duration-1000">
-        <div class="bg-white p-4 rounded-3xl mb-8 animate-pulse"><img src="knmiet-logo1494x375.webp"
-                class="h-10 object-contain" alt="Logo" onerror="this.src='knmiet-logo.webp'"></div>
         <div class="w-12 h-12 border-4 border-slate-800 border-t-blue-500 rounded-full animate-spin mb-6"></div>
-        <h2 class="text-lg font-black tracking-widest uppercase">Establishing Secure Connection</h2>
-        <p id="loaderText" class="text-xs text-blue-400 font-bold uppercase tracking-widest mt-2 animate-pulse">Waking
-            Cloud Servers...</p>
+        <h2 class="text-lg font-black tracking-widest uppercase">Securing Director Access</h2>
     </div>
 
     <div id="loginGate"
         class="hidden max-w-md mx-auto mt-16 p-10 glass rounded-[2.5rem] text-center border-t-4 border-blue-600">
-        <h2 class="text-2xl font-bold text-blue-400 mb-6">ERP Control Center</h2>
-        <input type="password" id="adminPass" placeholder="Enter Admin Key"
-            class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl mb-4 outline-none text-center">
+        <h2 class="text-2xl font-bold text-blue-400 mb-6">Director's Terminal</h2>
+        <input type="password" id="adminPass" placeholder="Enter Secure Key"
+            class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl mb-4 outline-none text-center text-white">
         <button onclick="verify()"
-            class="w-full bg-blue-600 py-4 rounded-xl font-bold uppercase tracking-widest">Unlock</button>
+            class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold uppercase tracking-widest text-white transition-all">Unlock
+            System</button>
     </div>
 
     <div id="dashboard" class="max-w-7xl mx-auto hidden space-y-8 animate-in fade-in duration-500">
         <div class="flex justify-between items-center glass p-6 rounded-3xl border-b-4 border-blue-600">
             <div>
-                <h1 class="text-2xl font-black">KNMIET ERP Admin</h1>
-                <p class="text-xs text-blue-400 font-bold uppercase tracking-widest">HOD Management</p>
+                <h1 class="text-2xl font-black">KNMIET Control Hub</h1>
+                <p class="text-xs text-blue-400 font-bold uppercase tracking-widest">Director's Terminal</p>
             </div>
             <div class="flex gap-3">
-                <a href="analytics.html"
-                    class="bg-blue-600 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest">📊
-                    Analytics</a>
-                <a href="timetable.html"
-                    class="bg-slate-800 px-6 py-3 rounded-2xl text-[10px] font-black border border-slate-700 uppercase tracking-widest">📅
-                    Timetable</a>
                 <button onclick="logoutAdmin()"
-                    class="bg-red-900/20 px-6 py-3 rounded-2xl text-red-400 border border-red-900/50 text-[10px] font-black uppercase">Logout</button>
+                    class="bg-red-900/20 px-6 py-3 rounded-2xl text-red-400 border border-red-900/50 text-[10px] font-black uppercase hover:bg-red-600 hover:text-white transition-all">Lock
+                    Terminal</button>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="glass p-6 rounded-3xl border-l-4 border-yellow-500 h-[500px] flex flex-col">
-                <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Pending Approvals</h3>
+                <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Student Verification</h3>
                 <div id="pendingList" class="space-y-3 overflow-y-auto pr-2 custom-scroll"></div>
             </div>
 
             <div class="glass p-6 rounded-3xl border-l-4 border-emerald-500 h-full">
-                <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Register Staff</h3>
+                <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Authorize Faculty</h3>
                 <div class="space-y-4">
                     <input type="text" id="tName" placeholder="Full Name"
-                        class="w-full bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm">
-                    <input type="text" id="tEmail" placeholder="Email (@knmiet.edu)"
-                        class="w-full bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm">
+                        class="w-full bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white">
+                    <input type="text" id="tEmail" placeholder="Email Address"
+                        class="w-full bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white">
                     <div class="flex gap-2">
-                        <select id="tRole" class="w-1/2 bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm">
-                            <option value="Faculty">Faculty</option>
-                            <option value="Coordinator">Coordinator</option>
-                            <option value="HOD">HOD</option>
+                        <select id="tRole"
+                            class="w-1/2 bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white">
+                            <option>Faculty</option>
+                            <option>HOD</option>
                         </select>
-                        <select id="tDept" class="w-1/2 bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm">
-                            <option value="CSE">CSE</option>
-                            <option value="IT">IT</option>
+                        <select id="tDept"
+                            class="w-1/2 bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white">
+                            <option>CSE</option>
+                            <option>IT</option>
+                            <option>AI</option>
+                            <option>ECE</option>
+                            <option>EE</option>
+                            <option>CHE</option>
                         </select>
                     </div>
-                    <input type="text" id="tPin" placeholder="4-Digit PIN"
-                        class="w-full bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-center font-mono">
                     <button onclick="addTeacher()"
-                        class="w-full bg-emerald-600 py-3.5 rounded-xl font-bold text-white mt-2 shadow-lg">CREATE
+                        class="w-full bg-emerald-600 py-3.5 rounded-xl font-bold text-white mt-2">CREATE FACULTY
                         PROFILE</button>
                 </div>
             </div>
 
             <div class="glass p-6 rounded-3xl border-l-4 border-purple-500 h-full">
-                <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Assign Subjects</h3>
+                <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Curriculum Mapping</h3>
                 <select id="sTeacher"
-                    class="w-full bg-slate-900 border border-purple-500 p-3 rounded-xl text-sm mb-4"></select>
+                    class="w-full bg-slate-900 border border-purple-500 p-3 rounded-xl text-sm mb-4 text-white font-bold"></select>
+
                 <div id="subjectRows" class="space-y-4 overflow-y-auto pr-2 custom-scroll h-[280px]">
                     <div class="subject-entry bg-slate-950 p-4 rounded-xl border border-slate-700 space-y-3">
-                        <input type="text" placeholder="Name (e.g. TAFL)"
-                            class="sName w-full bg-slate-900 p-3 rounded-lg border border-slate-700 text-sm">
-                        <input type="text" placeholder="Code (BCS401)"
-                            class="sCode w-full bg-slate-900 p-3 rounded-lg border border-slate-700 text-sm">
                         <div class="flex gap-2">
-                            <select class="sBranch w-1/2 bg-slate-900 p-3 rounded-lg border border-slate-700 text-sm">
-                                <option value="CSE">CSE</option>
-                                <option value="IT">IT</option>
+                            <input type="text" placeholder="Subject Name"
+                                class="sName w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs text-white">
+                            <input type="text" placeholder="Sub Code"
+                                class="sCode w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs text-white uppercase font-mono">
+                        </div>
+                        <div class="flex gap-2">
+                            <select
+                                class="sBranch w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-white font-bold">
+                                <option>CSE</option>
+                                <option>IT</option>
+                                <option>AI</option>
+                                <option>ECE</option>
+                                <option>EE</option>
+                                <option>CHE</option>
                             </select>
-                            <select class="sYear w-1/2 bg-slate-900 p-3 rounded-lg border border-slate-700 text-sm">
-                                <option value="1">1st Year</option>
-                                <option value="2">2nd Year</option>
-                                <option value="3">3rd Year</option>
-                                <option value="4">4th Year</option>
+                            <select
+                                class="sYear w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-white font-bold">
+                                <option value="1">1st Yr</option>
+                                <option value="2">2nd Yr</option>
+                                <option value="3">3rd Yr</option>
+                                <option value="4">4th Yr</option>
+                            </select>
+                            <select
+                                class="sSection w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-emerald-400 font-bold">
+                                <option>Sec A</option>
+                                <option>Sec B</option>
+                                <option>Sec C</option>
+                                <option>Sec D</option>
                             </select>
                         </div>
                     </div>
                 </div>
                 <div class="flex gap-3 pt-4 mt-4 border-t border-slate-800">
                     <button onclick="addSubjectRow()"
-                        class="w-1/3 bg-slate-800 py-3.5 rounded-xl font-black text-xs uppercase">+ Row</button>
+                        class="w-1/3 bg-slate-800 py-3 rounded-xl font-black text-[10px] text-white uppercase">+ Add
+                        Row</button>
                     <button onclick="assignMultipleSubjects()"
-                        class="w-2/3 bg-purple-600 py-3.5 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg">Link
-                        All</button>
+                        class="w-2/3 bg-purple-600 py-3 rounded-xl font-black text-[10px] text-white uppercase tracking-widest">Link
+                        Subjects</button>
                 </div>
             </div>
         </div>
@@ -142,18 +154,17 @@
             currentKey = localStorage.getItem('admin_key');
             try {
                 await fetch(`${API}/`);
-                removeLoader();
+                document.getElementById('globalLoader').style.opacity = '0';
+                setTimeout(() => document.getElementById('globalLoader').remove(), 1000);
                 if (currentKey) loadData(); else document.getElementById('loginGate').classList.remove('hidden');
-            } catch (e) { showLoaderError(); }
+            } catch (e) { setTimeout(() => location.reload(), 3000); }
         }
 
-        function removeLoader() { const l = document.getElementById('globalLoader'); if (l) { l.style.opacity = '0'; setTimeout(() => l.remove(), 1000); } }
-        function showLoaderError() { const t = document.getElementById('loaderText'); if (t) { t.innerText = "TIMEOUT. RETRYING..."; setTimeout(() => location.reload(), 3000); } }
         function logoutAdmin() { localStorage.removeItem('admin_key'); location.reload(); }
 
         async function verify() {
             currentKey = document.getElementById('adminPass').value.trim();
-            if (currentKey !== "KNM@2026!Admin") return alert("Invalid Key");
+            if (currentKey !== "KNM@2026!Admin") return alert("Unauthorized Attempt Logged.");
             localStorage.setItem('admin_key', currentKey);
             loadData();
         }
@@ -164,35 +175,32 @@
             const students = await sRes.json();
             const teachers = await tRes.json();
 
-            removeLoader();
             document.getElementById('loginGate').classList.add('hidden');
             document.getElementById('dashboard').classList.remove('hidden');
 
+            // INJECT ACCEPT AND REJECT BUTTONS
             document.getElementById('pendingList').innerHTML = students.length ? students.map(s => `
                 <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
-                    <p class="font-bold text-sm">${s.name} <span class="text-[10px] text-blue-400">${s.branch}-${s.year}</span></p>
-                    <p class="text-[10px] text-slate-500 mb-3">Roll: ${s.roll_no}</p>
-                    <button onclick="approve('${s.roll_no}')" class="w-full bg-blue-600 py-2 rounded-lg text-xs font-bold">APPROVE</button>
-                </div>`).join('') : '<p class="text-xs text-slate-500 italic text-center py-4">All students verified.</p>';
+                    <p class="font-bold text-sm text-white">${s.name} <span class="text-[9px] text-blue-400 bg-blue-900/30 px-2 rounded">${s.branch}-${s.year} [${s.section}]</span></p>
+                    <p class="text-[10px] text-slate-500 mb-3 font-mono">Roll: ${s.roll_no}</p>
+                    <div class="flex gap-2">
+                        <button onclick="updateStatus('${s.roll_no}', 'Approved')" class="w-2/3 bg-emerald-600 hover:bg-emerald-500 py-2 rounded-lg text-[10px] font-black uppercase text-white transition-all">Verify</button>
+                        <button onclick="updateStatus('${s.roll_no}', 'Rejected')" class="w-1/3 bg-slate-800 hover:bg-red-600 border border-slate-700 hover:border-red-600 py-2 rounded-lg text-[10px] font-black uppercase text-slate-400 hover:text-white transition-all">Reject</button>
+                    </div>
+                </div>`).join('') : '<p class="text-xs text-slate-500 italic text-center py-4">No pending verifications.</p>';
 
             document.getElementById('sTeacher').innerHTML = teachers.map(t => `<option value="${t.id}">${t.name} (${t.role})</option>`).join('');
         }
 
-        async function approve(roll) {
-            const res = await fetch(`${API}/approve-student?roll_no=${roll}&admin_key=${currentKey}`, { method: 'POST' });
-            if (res.ok) { alert("HOD Approved " + roll); loadData(); }
-        }
-
-        async function addTeacher() {
-            const n = document.getElementById('tName').value, e = document.getElementById('tEmail').value, r = document.getElementById('tRole').value, d = document.getElementById('tDept').value, p = document.getElementById('tPin').value;
-            const res = await fetch(`${API}/add-teacher?name=${encodeURIComponent(n)}&email=${encodeURIComponent(e)}&pin=${p}&role=${r}&department=${d}&admin_key=${currentKey}`, { method: 'POST' });
-            if (res.ok) { alert("Staff Registered!"); loadData(); }
+        async function updateStatus(roll, status) {
+            const res = await fetch(`${API}/update-student-status?roll_no=${roll}&status=${status}&admin_key=${currentKey}`, { method: 'POST' });
+            if (res.ok) loadData();
         }
 
         function addSubjectRow() {
             const row = document.createElement('div');
             row.className = "subject-entry bg-slate-950 p-4 rounded-xl border border-slate-700 space-y-3 relative";
-            row.innerHTML = `<button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 text-[10px] font-bold">REMOVE</button><input type="text" placeholder="Name" class="sName w-full bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs"><input type="text" placeholder="Code" class="sCode w-full bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs"><div class="flex gap-2"><select class="sBranch w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs"><option value="CSE">CSE</option><option value="IT">IT</option></select><select class="sYear w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs"><option value="1">1st Year</option><option value="2">2nd Year</option><option value="3">3rd Year</option><option value="4">4th Year</option></select></div>`;
+            row.innerHTML = `<button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 text-[10px] font-bold">✕</button><div class="flex gap-2"><input type="text" placeholder="Sub Name" class="sName w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs text-white"><input type="text" placeholder="Code" class="sCode w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs font-mono text-white"></div><div class="flex gap-2"><select class="sBranch w-1/3 bg-slate-900 p-2 text-[10px] text-white"><option>CSE</option><option>IT</option><option>AI</option><option>ECE</option><option>EE</option><option>CHE</option></select><select class="sYear w-1/3 bg-slate-900 p-2 text-[10px] text-white"><option value="1">1st Yr</option><option value="2">2nd Yr</option><option value="3">3rd Yr</option><option value="4">4th Yr</option></select><select class="sSection w-1/3 bg-slate-900 p-2 text-[10px] text-emerald-400 font-bold"><option>Sec A</option><option>Sec B</option><option>Sec C</option><option>Sec D</option></select></div>`;
             document.getElementById('subjectRows').appendChild(row);
         }
 
@@ -200,10 +208,18 @@
             const tid = document.getElementById('sTeacher').value;
             const entries = document.querySelectorAll('.subject-entry');
             for (let entry of entries) {
-                const name = entry.querySelector('.sName').value, code = entry.querySelector('.sCode').value, branch = entry.querySelector('.sBranch').value, year = entry.querySelector('.sYear').value;
-                await fetch(`${API}/assign-subject?name=${encodeURIComponent(name)}&code=${encodeURIComponent(code)}&branch=${branch}&year=${year}&teacher_id=${tid}&admin_key=${currentKey}`, { method: 'POST' });
+                const name = entry.querySelector('.sName').value, code = entry.querySelector('.sCode').value;
+                const branch = entry.querySelector('.sBranch').value, year = entry.querySelector('.sYear').value, section = entry.querySelector('.sSection').value;
+                if (name && code) await fetch(`${API}/assign-subject?name=${encodeURIComponent(name)}&code=${encodeURIComponent(code)}&branch=${branch}&year=${year}&section=${section}&teacher_id=${tid}&admin_key=${currentKey}`, { method: 'POST' });
             }
-            alert("Subjects Linked Successfully!");
+            alert("Curriculum Linked Successfully!");
+            loadData();
+        }
+
+        async function addTeacher() {
+            const n = document.getElementById('tName').value, e = document.getElementById('tEmail').value, r = document.getElementById('tRole').value, d = document.getElementById('tDept').value;
+            await fetch(`${API}/add-teacher?name=${encodeURIComponent(n)}&email=${encodeURIComponent(e)}&pin=1234&role=${r}&department=${d}&admin_key=${currentKey}`, { method: 'POST' });
+            alert("Staff Registered with default PIN: 1234"); loadData();
         }
     </script>
 </body>

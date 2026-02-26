@@ -1,237 +1,236 @@
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.responses import RedirectResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, Column, Integer, String, Boolean, Float, DateTime
-from datetime import datetime, timedelta
-import random, string
+<!DOCTYPE html>
+<html lang="en">
 
-from . import models, database
-from .database import engine
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Student Portal | KNMIET</title>
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <script src="[https://unpkg.com/html5-qrcode](https://unpkg.com/html5-qrcode)"></script>
+    <style>
+        body {
+            background: #020617;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
 
-models.Base.metadata.create_all(bind=engine)
+        .glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
 
-app = FastAPI()
-app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
+        .custom-scroll::-webkit-scrollbar {
+            height: 4px;
+            width: 4px;
+        }
 
-app.add_middleware(
-CORSMiddleware,
-allow_origins=["*"],
-allow_credentials=True,
-allow_methods=["*"],
-allow_headers=["*"],
-)
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 10px;
+        }
 
-ADMIN_SECRET = "KNM@2026!Admin"
-current_qr_string = ""
+        #reader {
+            width: 100% !important;
+            border: none !important;
+        }
 
-@app.get("/")
-async def root(): return RedirectResponse(url="/frontend/index.html")
+        #reader__scan_region {
+            background: white;
+        }
+    </style>
+</head>
 
-@app.get("/reset-database-danger")
-async def reset_db(admin_key: str):
-if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
-models.Base.metadata.drop_all(bind=engine)
-models.Base.metadata.create_all(bind=engine)
-return {"message": "Database wiped! Ready for Sections and Expanded Branches."}
+<body class="p-4 flex flex-col items-center pb-20" onload="checkStatus()">
 
-# --- STUDENT ROUTES ---
-@app.post("/register-student")
-async def register(erp_id: str, roll_no: str, name: str, branch: str, year: int, section: str, device_id: str, db:
-Session = Depends(database.get_db)):
-if len(roll_no) != 13: raise HTTPException(status_code=400, detail="Roll number must be 13 digits")
-existing = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
+    <div id="globalLoader"
+        class="fixed inset-0 bg-[#020617] z-[9999] flex flex-col items-center justify-center transition-opacity duration-1000">
+        <div class="bg-white p-4 rounded-3xl mb-8 animate-pulse"><img src="knmiet-logo1494x375.webp"
+                class="h-10 object-contain" alt="Logo"></div>
+        <div class="w-12 h-12 border-4 border-slate-800 border-t-blue-500 rounded-full animate-spin mb-6"></div>
+        <p id="loaderText" class="text-xs text-blue-400 font-bold uppercase tracking-widest">Checking Director
+            Authorization...</p>
+    </div>
 
-if existing:
-if existing.status == "Rejected":
-existing.name = name; existing.branch = branch; existing.year = year; existing.section = section;
-existing.registered_device = device_id; existing.status = "Pending"
-db.commit()
-return {"status": "success", "message": "Re-application submitted."}
-if existing.registered_device == "PENDING_RESET":
-existing.registered_device = device_id
-db.commit()
-return {"status": "success", "message": "New Device Linked Successfully!"}
-if existing.name.strip().lower() == name.strip().lower(): return {"status": "success", "message": "Welcome back!"}
-raise HTTPException(status_code=403, detail="Roll Number already registered to another device!")
+    <div id="pendingView"
+        class="hidden mt-10 w-full max-w-sm glass p-8 rounded-[3rem] text-center border-t-4 border-yellow-500 shadow-2xl">
+        <div
+            class="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-yellow-500/20">
+            <span class="text-2xl">⏳</span></div>
+        <h2 class="text-xl font-black text-yellow-500">Under Review</h2>
+        <button onclick="location.reload()"
+            class="mt-8 w-full bg-yellow-600 hover:bg-yellow-500 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-white">Refresh
+            Status</button>
+    </div>
 
-new_student = models.Student(erp_id=erp_id, name=name, roll_no=roll_no, branch=branch, year=year, section=section,
-registered_device=device_id, status="Pending", total_lectures=0)
-db.add(new_student)
-db.commit()
-return {"status": "success", "message": "Registered! Awaiting Director approval."}
+    <div id="rejectedView"
+        class="hidden mt-10 w-full max-w-sm glass p-8 rounded-[3rem] text-center border-t-4 border-red-500 shadow-2xl">
+        <div
+            class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+            <span class="text-2xl">❌</span></div>
+        <h2 class="text-xl font-black text-red-500">Request Denied</h2>
+        <button onclick="reApply()"
+            class="mt-8 w-full bg-slate-800 border border-red-500/50 hover:bg-red-600 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-white">Clear
+            Data & Re-Apply</button>
+    </div>
 
-@app.get("/student-profile")
-async def get_profile(roll_no: str, db: Session = Depends(database.get_db)):
-s = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
-if not s: return {"exists": False}
-db.refresh(s)
-return {"exists": True, "status": s.status, "name": s.name, "branch": s.branch, "year": s.year, "section": s.section,
-"total_lectures": s.total_lectures}
+    <div id="approvedView" class="hidden w-full max-w-md space-y-6 animate-in fade-in duration-500">
+        <div class="glass p-6 rounded-[2rem] border-l-4 border-blue-500 shadow-xl">
+            <h1 id="sName" class="text-xl font-black truncate">Student</h1>
+            <div class="flex justify-between items-end mt-2">
+                <p id="sBranch" class="text-blue-400 text-[10px] font-bold uppercase tracking-widest"></p>
+                <div class="text-right">
+                    <p class="text-[8px] text-slate-500 uppercase font-bold">Total Scans</p>
+                    <p id="totalLecs" class="text-2xl font-black text-emerald-400 leading-none mt-1">0</p>
+                </div>
+            </div>
+        </div>
 
-@app.get("/student-erp-data")
-async def student_erp(roll_no: str, db: Session = Depends(database.get_db)):
-s = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
-if not s: raise HTTPException(status_code=404)
-subs = db.query(models.Subject).filter(models.Subject.branch == s.branch, models.Subject.year == s.year,
-models.Subject.section == s.section).all()
-data = []
-for sub in subs:
-att = db.query(models.Attendance).filter(models.Attendance.student_roll == roll_no, models.Attendance.subject_id ==
-sub.id).count()
-m = db.query(models.ExamMarks).filter_by(student_roll=roll_no, subject_id=sub.id).first()
-data.append({"subject_name": sub.name, "code": sub.code, "attended": att, "total_held": sub.total_lectures_held or 0,
-"s1": m.sessional_1 if m else 0, "s2": m.sessional_2 if m else 0, "put": m.put_marks if m else 0})
-return {"subjects": data, "overall_attended": s.total_lectures}
+        <div class="glass p-4 rounded-[2rem] overflow-hidden border border-slate-800 shadow-lg">
+            <div id="reader" class="rounded-2xl"></div>
+            <p id="scanMsg"
+                class="text-center text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-4 italic">Align QR
+                to Mark Attendance</p>
+        </div>
 
-# NEW: DATE MATRIX ROUTE
-@app.get("/student-attendance-history")
-async def student_history(roll_no: str, db: Session = Depends(database.get_db)):
-student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
-if not student: raise HTTPException(status_code=404)
+        <div class="flex gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
+            <button id="btnOverview" onclick="switchTab('overview')"
+                class="w-1/2 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest bg-blue-600 text-white transition-all">Overview</button>
+            <button id="btnMatrix" onclick="switchTab('matrix')"
+                class="w-1/2 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all">Date
+                Matrix</button>
+        </div>
 
-subjects = db.query(models.Subject).filter(models.Subject.branch == student.branch, models.Subject.year == student.year,
-models.Subject.section == student.section).all()
-attendance_records = db.query(models.Attendance).filter(models.Attendance.student_roll ==
-roll_no).order_by(models.Attendance.timestamp.desc()).all()
+        <div id="overviewTab" class="space-y-3 pb-10">
+            <div id="subjectList" class="space-y-3"></div>
+        </div>
 
-history_by_date = {}
-for record in attendance_records:
-date_str = record.timestamp.strftime("%d-%m-%y")
-if date_str not in history_by_date: history_by_date[date_str] = []
-history_by_date[date_str].append(record.subject_id)
+        <div id="matrixTab"
+            class="hidden overflow-x-auto glass rounded-[1.5rem] border border-slate-800 shadow-xl custom-scroll">
+            <table class="w-full text-center border-collapse whitespace-nowrap">
+                <thead>
+                    <tr id="matrixHeader"
+                        class="bg-slate-950 text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-800">
+                    </tr>
+                </thead>
+                <tbody id="matrixBody" class="divide-y divide-slate-800/50 text-xs">
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-return {
-"subjects": [{"id": s.id, "code": s.code} for s in subjects],
-"history": history_by_date
-}
+    <script>
+        const API = "[https://knmiet-attendance-core.onrender.com](https://knmiet-attendance-core.onrender.com)";
+        const roll = localStorage.getItem('student_roll');
+        const devID = localStorage.getItem('cse22_dev_id');
 
-@app.post("/mark-attendance")
-async def mark_attendance(roll_no: str, qr_content: str, subject_id: int, device_id: str, db: Session =
-Depends(database.get_db)):
-global current_qr_string
-if qr_content != current_qr_string: raise HTTPException(status_code=400, detail="QR Expired!")
-student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
-if not student or student.status != "Approved": raise HTTPException(status_code=403, detail="Director Approval
-Required")
-if student.registered_device != device_id: raise HTTPException(status_code=403, detail="Device ID Security Mismatch")
+        async function checkStatus() {
+            if (!roll) { window.location.href = "register.html"; return; }
+            try {
+                const res = await fetch(`${API}/student-profile?roll_no=${roll}&t=${Date.now()}`);
+                const data = await res.json();
 
-subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
-if not subject: raise HTTPException(status_code=404, detail="Subject not found")
-if student.branch != subject.branch or student.year != subject.year or student.section != subject.section:
-raise HTTPException(status_code=403, detail=f"Access Denied! You belong to {student.branch} YR {student.year} Sec
-{student.section}")
+                if (!data.exists) { localStorage.removeItem('student_roll'); window.location.href = "register.html"; return; }
 
-time_limit = datetime.utcnow() - timedelta(minutes=40)
-duplicate = db.query(models.Attendance).filter(models.Attendance.student_roll == roll_no, models.Attendance.subject_id
-== subject_id, models.Attendance.timestamp >= time_limit).first()
-if duplicate: raise HTTPException(status_code=400, detail="Duplicate: Wait 40m to scan this subject again")
+                const l = document.getElementById('globalLoader');
+                if (l) { l.style.opacity = '0'; setTimeout(() => l.remove(), 1000); }
 
-student.total_lectures += 1
-db.add(models.Attendance(student_roll=roll_no, subject_id=subject_id))
-db.commit()
-return {"status": "Success"}
+                if (data.status === "Approved") {
+                    document.getElementById('approvedView').classList.remove('hidden');
+                    document.getElementById('sName').innerText = data.name;
+                    document.getElementById('sBranch').innerText = `${data.branch} - YR ${data.year} [SEC ${data.section}]`;
+                    document.getElementById('totalLecs').innerText = data.total_lectures;
+                    loadData();
+                    loadMatrix();
+                    startScanner();
+                } else if (data.status === "Rejected") { document.getElementById('rejectedView').classList.remove('hidden'); }
+                else { document.getElementById('pendingView').classList.remove('hidden'); }
+            } catch (e) { document.getElementById('loaderText').innerText = "OFFLINE. RETRYING..."; setTimeout(() => location.reload(), 3000); }
+        }
 
-# --- ADMIN ROUTES ---
-@app.get("/pending-students")
-async def get_pending(admin_key: str, db: Session = Depends(database.get_db)):
-if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
-return db.query(models.Student).filter(models.Student.status == "Pending").all()
+        function switchTab(tab) {
+            if (tab === 'overview') {
+                document.getElementById('overviewTab').classList.remove('hidden');
+                document.getElementById('matrixTab').classList.add('hidden');
+                document.getElementById('btnOverview').classList.replace('text-slate-500', 'text-white');
+                document.getElementById('btnOverview').classList.add('bg-blue-600');
+                document.getElementById('btnMatrix').classList.replace('text-white', 'text-slate-500');
+                document.getElementById('btnMatrix').classList.remove('bg-blue-600');
+            } else {
+                document.getElementById('overviewTab').classList.add('hidden');
+                document.getElementById('matrixTab').classList.remove('hidden');
+                document.getElementById('btnMatrix').classList.replace('text-slate-500', 'text-white');
+                document.getElementById('btnMatrix').classList.add('bg-blue-600');
+                document.getElementById('btnOverview').classList.replace('text-white', 'text-slate-500');
+                document.getElementById('btnOverview').classList.remove('bg-blue-600');
+            }
+        }
 
-@app.post("/update-student-status")
-async def update_status(roll_no: str, status: str, admin_key: str, db: Session = Depends(database.get_db)):
-if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
-student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
-if student: student.status = status; db.commit(); db.refresh(student)
-return {"message": f"Student {status}"}
+        function reApply() { localStorage.removeItem('student_roll'); window.location.href = "register.html"; }
 
-@app.post("/reset-student-device")
-async def reset_device(roll_no: str, admin_key: str, db: Session = Depends(database.get_db)):
-if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
-student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
-if student:
-student.registered_device = "PENDING_RESET"
-db.commit()
-return {"message": "Device reset successful"}
-raise HTTPException(status_code=404, detail="Student not found")
+        async function loadData() {
+            const res = await fetch(`${API}/student-erp-data?roll_no=${roll}`);
+            const erp = await res.json();
+            document.getElementById('subjectList').innerHTML = erp.subjects.map(s => {
+                let p = s.total_held > 0 ? Math.round((s.attended / s.total_held) * 100) : 0;
+                return `
+                <div class="glass p-4 rounded-2xl border-l-2 ${p >= 75 ? 'border-emerald-500' : 'border-red-500'}">
+                    <div class="flex justify-between items-start"><div class="max-w-[70%]"><p class="text-[9px] font-bold text-blue-500 uppercase">${s.code}</p><p class="font-bold text-xs truncate">${s.subject_name}</p></div><p class="font-black text-lg ${p >= 75 ? 'text-emerald-400' : 'text-red-500'}">${p}%</p></div>
+                    <div class="flex justify-between text-[9px] font-bold text-slate-500 mt-3 uppercase"><span>Attended: <span class="text-white">${s.attended}/${s.total_held}</span></span><span>Marks: <span class="text-white">${s.s1}|${s.s2}|${s.put}</span></span></div>
+                </div>`;
+            }).join('');
+        }
 
-@app.post("/assign-subject")
-async def assign_subject(name: str, code: str, branch: str, year: int, section: str, teacher_id: int, admin_key: str,
-db: Session = Depends(database.get_db)):
-if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
-db.add(models.Subject(name=name, code=code, branch=branch, year=year, section=section, teacher_id=teacher_id,
-total_lectures_held=0))
-db.commit()
-return {"message": "Subject Linked"}
+        async function loadMatrix() {
+            try {
+                const res = await fetch(`${API}/student-attendance-history?roll_no=${roll}`);
+                const data = await res.json();
 
-@app.post("/add-teacher")
-async def add_teacher(name: str, email: str, pin: str, role: str, department: str, admin_key: str, db: Session =
-Depends(database.get_db)):
-if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
-db.add(models.Teacher(name=name, email=email, pin=pin, role=role, department=department))
-db.commit()
-return {"message": "Teacher Added"}
+                let headersHTML = `<th class="p-4 text-left border-r border-slate-800 sticky left-0 bg-slate-950 z-10">Date</th>`;
+                data.subjects.forEach(sub => { headersHTML += `<th class="p-4 px-6">${sub.code}</th>`; });
+                document.getElementById('matrixHeader').innerHTML = headersHTML;
 
-@app.get("/get-teachers")
-async def get_t(db: Session = Depends(database.get_db)): return db.query(models.Teacher).all()
+                const body = document.getElementById('matrixBody');
+                const dates = Object.keys(data.history).sort((a, b) => b.localeCompare(a));
 
-@app.get("/all-students-analytics")
-async def all_analytics(admin_key: str, db: Session = Depends(database.get_db)):
-if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
-return db.query(models.Student).all()
+                if (dates.length === 0) {
+                    body.innerHTML = `<tr><td colspan="${data.subjects.length + 1}" class="p-8 text-[10px] text-slate-500 font-bold uppercase italic text-center">No attendance records found.</td></tr>`;
+                    return;
+                }
 
-# --- TEACHER ROUTES ---
-@app.get("/teacher-subjects")
-async def get_ts(teacher_id: int, db: Session = Depends(database.get_db)): return
-db.query(models.Subject).filter_by(teacher_id=teacher_id).all()
+                let rowsHTML = "";
+                dates.forEach(date => {
+                    const attendedSubjects = data.history[date];
+                    let row = `<tr><td class="p-4 text-[10px] font-black bg-[#0f172a] text-emerald-400 border-r border-slate-800 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">${date}</td>`;
 
-@app.get("/verify-teacher-pin")
-async def verify_pin(teacher_id: int, entered_pin: str, db: Session = Depends(database.get_db)):
-t = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
-if t and t.pin == entered_pin: return {"status": "success", "role": t.role}
-raise HTTPException(status_code=401, detail="Invalid PIN")
+                    data.subjects.forEach(sub => {
+                        if (attendedSubjects.includes(sub.id)) {
+                            row += `<td class="p-4 font-black text-emerald-500">P</td>`;
+                        } else {
+                            row += `<td class="p-4 font-bold text-slate-600">--</td>`;
+                        }
+                    });
+                    row += `</tr>`;
+                    rowsHTML += row;
+                });
+                body.innerHTML = rowsHTML;
+            } catch (e) {
+                console.error("Failed to load matrix", e);
+            }
+        }
 
-@app.get("/generate-qr-string")
-async def generate_qr(subject_id: int, is_new: bool = False, db: Session = Depends(database.get_db)):
-global current_qr_string
-if is_new:
-sub = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
-if sub: sub.total_lectures_held = (sub.total_lectures_held or 0) + 1; db.commit()
-current_qr_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-return {"current_qr_string": current_qr_string}
+        function startScanner() {
+            const scanner = new Html5Qrcode("reader");
+            scanner.start({ facingMode: "environment" }, { fps: 15, qrbox: 200 }, async (txt) => {
+                scanner.pause();
+                const [q, subId] = txt.split('|');
+                const res = await fetch(`${API}/mark-attendance?roll_no=${roll}&qr_content=${q}&subject_id=${subId}&device_id=${devID}`, { method: 'POST' });
+                if (res.ok) { document.getElementById('scanMsg').innerText = "SECURED!"; setTimeout(() => location.reload(), 1500); }
+                else { const e = await res.json(); alert(e.detail); scanner.resume(); }
+            }, () => { });
+        }
+    </script>
+</body>
 
-@app.get("/live-attendance")
-async def get_live(subject_id: int, db: Session = Depends(database.get_db)):
-records = db.query(models.Attendance).filter(models.Attendance.subject_id ==
-subject_id).order_by(models.Attendance.id.desc()).limit(10).all()
-res = []
-for r in records:
-s = db.query(models.Student).filter(models.Student.roll_no == r.student_roll).first()
-if s: res.append({"name": s.name, "roll_no": s.roll_no, "branch": s.branch, "year": s.year, "section": s.section})
-return res
-
-@app.get("/subject-roster")
-async def get_roster(subject_id: int, db: Session = Depends(database.get_db)):
-sub = db.query(models.Subject).filter_by(id=subject_id).first()
-students = db.query(models.Student).filter_by(branch=sub.branch, year=sub.year, section=sub.section,
-status="Approved").all()
-roster = []
-for s in students:
-m = db.query(models.ExamMarks).filter_by(student_roll=s.roll_no, subject_id=sub.id).first()
-roster.append({"name": s.name, "roll_no": s.roll_no, "s1": m.sessional_1 if m else 0, "s2": m.sessional_2 if m else 0,
-"put": m.put_marks if m else 0})
-return {"roster": roster}
-
-@app.post("/update-marks")
-async def update_m(roll_no: str, subject_id: int, s1: float, s2: float, put: float, db: Session =
-Depends(database.get_db)):
-m = db.query(models.ExamMarks).filter_by(student_roll=roll_no, subject_id=subject_id).first()
-if not m:
-m = models.ExamMarks(student_roll=roll_no, subject_id=subject_id)
-db.add(m)
-if s1 > 0: m.sessional_1 = s1
-if s2 > 0: m.sessional_2 = s2
-if put > 0: m.put_marks = put
-db.commit()
-return {"message": "Saved"}
+</html>

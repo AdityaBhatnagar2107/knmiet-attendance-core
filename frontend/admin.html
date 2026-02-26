@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Director's Terminal | KNMIET</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
     <style>
         body {
             background: #020617;
@@ -72,6 +72,10 @@
                         class="w-full bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white">
                     <input type="text" id="tEmail" placeholder="Email Address"
                         class="w-full bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white">
+
+                    <input type="text" id="tPin" placeholder="Assign 4-Digit PIN" maxlength="4"
+                        class="w-full bg-slate-900 p-3 rounded-xl border border-emerald-500/50 text-sm text-emerald-400 font-bold font-mono tracking-[0.5em] text-center outline-none focus:border-emerald-500">
+
                     <div class="flex gap-2">
                         <select id="tRole"
                             class="w-1/2 bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white">
@@ -148,7 +152,7 @@
 
     <script>
         let currentKey = "";
-        const API = "https://knmiet-attendance-core.onrender.com";
+        const API = "[https://knmiet-attendance-core.onrender.com](https://knmiet-attendance-core.onrender.com)";
 
         async function wakeServer() {
             currentKey = localStorage.getItem('admin_key');
@@ -178,7 +182,6 @@
             document.getElementById('loginGate').classList.add('hidden');
             document.getElementById('dashboard').classList.remove('hidden');
 
-            // INJECT ACCEPT AND REJECT BUTTONS
             document.getElementById('pendingList').innerHTML = students.length ? students.map(s => `
                 <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700">
                     <p class="font-bold text-sm text-white">${s.name} <span class="text-[9px] text-blue-400 bg-blue-900/30 px-2 rounded">${s.branch}-${s.year} [${s.section}]</span></p>
@@ -217,9 +220,14 @@
         }
 
         async function addTeacher() {
-            const n = document.getElementById('tName').value, e = document.getElementById('tEmail').value, r = document.getElementById('tRole').value, d = document.getElementById('tDept').value;
-            await fetch(`${API}/add-teacher?name=${encodeURIComponent(n)}&email=${encodeURIComponent(e)}&pin=1234&role=${r}&department=${d}&admin_key=${currentKey}`, { method: 'POST' });
-            alert("Staff Registered with default PIN: 1234"); loadData();
+            const n = document.getElementById('tName').value, e = document.getElementById('tEmail').value;
+            const p = document.getElementById('tPin').value, r = document.getElementById('tRole').value, d = document.getElementById('tDept').value;
+
+            if (!n || !e || !p || p.length < 4) return alert("Please fill all fields and provide a 4-digit PIN.");
+
+            await fetch(`${API}/add-teacher?name=${encodeURIComponent(n)}&email=${encodeURIComponent(e)}&pin=${encodeURIComponent(p)}&role=${r}&department=${d}&admin_key=${currentKey}`, { method: 'POST' });
+            alert(`Staff Registered! Give them PIN: ${p}`);
+            loadData();
         }
     </script>
 </body>

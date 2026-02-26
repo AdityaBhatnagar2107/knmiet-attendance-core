@@ -76,7 +76,6 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
-
             <div
                 class="glass p-8 rounded-[3rem] border-t-4 border-emerald-500 flex flex-col h-full items-center text-center">
                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-6 tracking-widest w-full text-left">Live
@@ -114,14 +113,13 @@
                     </div>
                     <button onclick="stopSession()"
                         class="mt-6 w-full bg-red-900/40 text-red-400 border border-red-900 py-4 rounded-2xl font-black text-xs hover:bg-red-600 hover:text-white transition-all uppercase tracking-widest">End
-                        Session & Lock Server</button>
+                        Session & Kill QR</button>
                 </div>
             </div>
 
             <div class="glass p-8 rounded-[3rem] border-t-4 border-purple-500 flex flex-col h-full">
                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-6 tracking-widest">Section Roster & Assessment
                     Entry</h3>
-
                 <div class="flex gap-2 mb-4">
                     <button onclick="loadRoster()"
                         class="w-3/4 bg-slate-800 text-white py-4 rounded-2xl font-black text-xs hover:bg-purple-600 transition-all uppercase tracking-widest shadow-lg border border-slate-700">Fetch
@@ -129,7 +127,6 @@
                     <button id="btnExport" onclick="exportExcel()"
                         class="hidden w-1/4 bg-emerald-600 text-white py-4 rounded-2xl font-black text-xs hover:bg-emerald-500 transition-all uppercase tracking-widest shadow-lg">Excel</button>
                 </div>
-
                 <button onclick="viewTimetable()"
                     class="w-full bg-cyan-900/30 text-cyan-400 border border-cyan-800 py-3 rounded-xl font-bold text-[10px] hover:bg-cyan-600 hover:text-white transition-all uppercase tracking-widest mb-6">Check
                     Room Schedule</button>
@@ -184,7 +181,6 @@
             } catch (e) { alert("Server Offline"); }
         }
 
-        // NEW: WE SAVE DATA ATTRIBUTES SO TEACHER CAN PULL THE TIMETABLE
         async function loadSubjects() {
             const res = await fetch(`${API}/teacher-subjects?teacher_id=${currentTeacherId}`);
             const subjects = await res.json();
@@ -193,16 +189,13 @@
             ).join('');
         }
 
-        // NEW: FETCH TIMETABLE SCRIPT
         async function viewTimetable() {
             const sel = document.getElementById('subjectSelect');
             if (!sel.value) return alert("Select a class first!");
             const opt = sel.options[sel.selectedIndex];
             const groupId = `${opt.getAttribute('data-branch')}-${opt.getAttribute('data-year')}-${opt.getAttribute('data-sec')}`;
-
             document.getElementById('ttContainer').classList.remove('hidden');
             document.getElementById('ttDisplay').innerText = "Fetching schedule...";
-
             try {
                 const res = await fetch(`${API}/get-timetable?group_id=${groupId}`);
                 const data = await res.json();
@@ -250,8 +243,14 @@
             } catch (e) { }
         }
 
-        function stopSession() {
+        // THE FIX: Ends the session on the backend specifically for this class
+        async function stopSession() {
             clearInterval(qrInterval); clearInterval(countdownInterval); clearInterval(liveFeedInterval);
+            const subId = document.getElementById('subjectSelect').value;
+
+            // Tell the server to kill this exact QR code
+            try { await fetch(`${API}/stop-session?subject_id=${subId}`, { method: 'POST' }); } catch (e) { }
+
             document.getElementById('qrcode').innerHTML = '<p class="text-red-500 font-bold p-8 text-center mt-10">CLOSED</p>';
             document.getElementById('timerText').innerText = "-";
             setTimeout(() => { document.getElementById('qrContainer').classList.add('hidden'); document.getElementById('qrControls').classList.remove('hidden'); document.getElementById('liveScans').innerHTML = '<p class="text-[10px] text-slate-500 italic text-center mt-4">Waiting for students to scan...</p>'; }, 1500);
@@ -262,12 +261,9 @@
             if (!subId) return;
             const res = await fetch(`${API}/subject-roster?subject_id=${subId}`);
             const data = await res.json();
-
             currentRosterData = data.roster; currentFilenameData = data.filename_data; currentTotalHeld = data.total_held;
-
             document.getElementById('rosterHeader').classList.remove('hidden');
             document.getElementById('btnExport').classList.remove('hidden');
-
             document.getElementById('rosterContainer').innerHTML = data.roster.length ? data.roster.map(s => {
                 let perc = currentTotalHeld > 0 ? Math.round((s.attended / currentTotalHeld) * 100) : 0;
                 let color = perc >= 75 ? "text-emerald-500" : "text-red-500";
@@ -284,12 +280,8 @@
         function exportExcel() {
             if (currentRosterData.length === 0) return alert("No data to download.");
             let csv = "Roll Number,Student Name,Attended,Total Lectures,Attendance %,Sessional 1,Sessional 2,PUT Marks\n";
-            currentRosterData.forEach(s => {
-                let perc = currentTotalHeld > 0 ? Math.round((s.attended / currentTotalHeld) * 100) : 0;
-                csv += `${s.roll_no},"${s.name}",${s.attended},${currentTotalHeld},${perc}%,${s.s1},${s.s2},${s.put}\n`;
-            });
-            const a = document.createElement('a'); a.setAttribute('href', URL.createObjectURL(new Blob([csv], { type: 'text/csv' })));
-            a.setAttribute('download', `Class_List_${currentFilenameData}_${new Date().toLocaleDateString()}.csv`); a.click();
+            currentRosterData.forEach(s => { let perc = currentTotalHeld > 0 ? Math.round((s.attended / currentTotalHeld) * 100) : 0; csv += `${s.roll_no},"${s.name}",${s.attended},${currentTotalHeld},${perc}%,${s.s1},${s.s2},${s.put}\n`; });
+            const a = document.createElement('a'); a.setAttribute('href', URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))); a.setAttribute('download', `Class_List_${currentFilenameData}_${new Date().toLocaleDateString()}.csv`); a.click();
         }
 
         async function updateM(roll, subId, val, type, el) {

@@ -24,7 +24,9 @@ app.add_middleware(
 )
 
 ADMIN_SECRET = "KNM@2026!Admin" 
-current_qr_string = ""
+
+# --- THE FIX: MULTI-CLASS SESSION TRACKER ---
+active_sessions = {}
 
 @app.get("/")
 async def root(): return RedirectResponse(url="/frontend/index.html")
@@ -99,18 +101,17 @@ async def student_history(roll_no: str, db: Session = Depends(database.get_db)):
         date_str = record.timestamp.strftime("%d-%m-%y")
         if date_str not in history_by_date: history_by_date[date_str] = []
         history_by_date[date_str].append(record.subject_id)
-        
-    # NEW: Inject Approved Leaves into Matrix logic
     approved_leaves = [l.date_req for l in db.query(models.LeaveRequest).filter_by(student_roll=roll_no, status="Approved").all()]
     for d in approved_leaves:
-        if d not in history_by_date: history_by_date[d] = [] # Creates empty row so 'L' can be rendered
-        
+        if d not in history_by_date: history_by_date[d] = [] 
     return {"subjects": [{"id": s.id, "code": s.code} for s in subjects], "history": history_by_date, "approved_leaves": approved_leaves}
 
 @app.post("/mark-attendance")
 async def mark_attendance(roll_no: str, qr_content: str, subject_id: int, device_id: str, db: Session = Depends(database.get_db)):
-    global current_qr_string
-    if qr_content != current_qr_string: raise HTTPException(status_code=400, detail="QR Expired!")
+    # THE FIX: Checking the specific active session dictionary
+    if subject_id not in active_sessions or active_sessions[subject_id] != qr_content:
+        raise HTTPException(status_code=400, detail="QR Expired or Class Not Active!")
+        
     student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
     if not student or student.status != "Approved": raise HTTPException(status_code=403, detail="Director Approval Required")
     if student.registered_device != device_id: raise HTTPException(status_code=403, detail="Device ID Security Mismatch")
@@ -124,27 +125,19 @@ async def mark_attendance(roll_no: str, qr_content: str, subject_id: int, device
     db.add(models.Attendance(student_roll=roll_no, subject_id=subject_id)); db.commit()
     return {"status": "Success"}
 
-# --- NEW: LEAVE MANAGEMENT ROUTES ---
 @app.post("/request-leave")
 async def request_leave(roll_no: str, date_req: str, reason: str, db: Session = Depends(database.get_db)):
-    db.add(models.LeaveRequest(student_roll=roll_no, date_req=date_req, reason=reason))
-    db.commit()
-    return {"message": "Leave requested"}
-
+    db.add(models.LeaveRequest(student_roll=roll_no, date_req=date_req, reason=reason)); db.commit(); return {"message": "Leave requested"}
 @app.get("/student-leaves")
-async def get_student_leaves(roll_no: str, db: Session = Depends(database.get_db)):
-    return db.query(models.LeaveRequest).filter_by(student_roll=roll_no).order_by(models.LeaveRequest.id.desc()).all()
-
+async def get_student_leaves(roll_no: str, db: Session = Depends(database.get_db)): return db.query(models.LeaveRequest).filter_by(student_roll=roll_no).order_by(models.LeaveRequest.id.desc()).all()
 @app.get("/pending-leaves")
 async def get_pending_leaves(admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
-    leaves = db.query(models.LeaveRequest).filter_by(status="Pending").all()
-    res = []
+    leaves = db.query(models.LeaveRequest).filter_by(status="Pending").all(); res = []
     for l in leaves:
         s = db.query(models.Student).filter_by(roll_no=l.student_roll).first()
         if s: res.append({"id": l.id, "name": s.name, "roll_no": s.roll_no, "date_req": l.date_req, "reason": l.reason})
     return res
-
 @app.post("/update-leave-status")
 async def update_leave_status(leave_id: int, status: str, admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
@@ -152,38 +145,32 @@ async def update_leave_status(leave_id: int, status: str, admin_key: str, db: Se
     if l: l.status = status; db.commit()
     return {"message": "Success"}
 
-# --- ADMIN ROUTES ---
 @app.get("/pending-students")
 async def get_pending(admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     return db.query(models.Student).filter(models.Student.status == "Pending").all()
-
 @app.post("/update-student-status")
 async def update_status(roll_no: str, status: str, admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
     if student: student.status = status; db.commit(); db.refresh(student)
     return {"message": f"Student {status}"}
-
 @app.post("/reset-student-device")
 async def reset_device(roll_no: str, admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
     if student: student.registered_device = "PENDING_RESET"; db.commit(); return {"message": "Device reset successful"}
     raise HTTPException(status_code=404, detail="Student not found")
-
 @app.post("/assign-subject")
 async def assign_subject(name: str, code: str, branch: str, year: int, section: str, teacher_id: int, admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     db.add(models.Subject(name=name, code=code, branch=branch, year=year, section=section, teacher_id=teacher_id, total_lectures_held=0)); db.commit()
     return {"message": "Subject Linked"}
-
 @app.post("/add-teacher")
 async def add_teacher(name: str, email: str, pin: str, role: str, department: str, admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     db.add(models.Teacher(name=name, email=email, pin=pin, role=role, department=department)); db.commit()
     return {"message": "Teacher Added"}
-
 @app.get("/get-teachers")
 async def get_t(db: Session = Depends(database.get_db)): return db.query(models.Teacher).all()
 @app.get("/all-students-analytics")
@@ -197,14 +184,23 @@ async def verify_pin(teacher_id: int, entered_pin: str, db: Session = Depends(da
     t = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
     if t and t.pin == entered_pin: return {"status": "success", "role": t.role}
     raise HTTPException(status_code=401, detail="Invalid PIN")
+
+# --- THE FIX: ISOLATED QR GENERATION ---
 @app.get("/generate-qr-string")
 async def generate_qr(subject_id: int, is_new: bool = False, db: Session = Depends(database.get_db)):
-    global current_qr_string
     if is_new:
         sub = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
         if sub: sub.total_lectures_held = (sub.total_lectures_held or 0) + 1; db.commit()
-    current_qr_string = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-    return {"current_qr_string": current_qr_string}
+    # Saves strictly to this subject_id
+    active_sessions[subject_id] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+    return {"current_qr_string": active_sessions[subject_id]}
+
+# --- NEW: END SESSION ROUTE ---
+@app.post("/stop-session")
+async def stop_session(subject_id: int):
+    active_sessions.pop(subject_id, None) # Instantly kills the QR code
+    return {"status": "stopped"}
+
 @app.get("/live-attendance")
 async def get_live(subject_id: int, db: Session = Depends(database.get_db)):
     records = db.query(models.Attendance).filter(models.Attendance.subject_id == subject_id).order_by(models.Attendance.id.desc()).limit(10).all()

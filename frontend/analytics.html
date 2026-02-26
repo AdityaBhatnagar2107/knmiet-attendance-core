@@ -58,23 +58,39 @@
             </div>
             <div class="flex gap-2 mt-4 md:mt-0">
                 <button onclick="exportToCSV()"
-                    class="bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-2xl text-[10px] font-black uppercase transition-all">Download
+                    class="bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-2xl text-[10px] font-black uppercase transition-all shadow-lg">Download
                     Excel</button>
                 <button onclick="window.print()"
-                    class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-2xl text-[10px] font-black uppercase transition-all">Save
+                    class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-2xl text-[10px] font-black uppercase transition-all shadow-lg">Save
                     PDF</button>
                 <a href="admin.html"
-                    class="bg-slate-800 hover:bg-slate-700 px-6 py-3 rounded-2xl text-[10px] font-black uppercase transition-all">Back</a>
+                    class="bg-slate-800 hover:bg-slate-700 px-6 py-3 rounded-2xl text-[10px] font-black uppercase transition-all border border-slate-700">Back</a>
             </div>
         </div>
 
-        <div class="flex flex-col md:flex-row gap-4 no-print">
+        <div class="flex flex-col md:flex-row gap-3 no-print w-full">
+            <select id="fYear" onchange="filterData()"
+                class="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs font-bold uppercase outline-none focus:border-blue-500 text-white w-full md:w-1/6">
+                <option value="all">All Years</option>
+                <option value="1">1st Year</option>
+                <option value="2">2nd Year</option>
+                <option value="3">3rd Year</option>
+                <option value="4">4th Year</option>
+            </select>
+            <select id="fSection" onchange="filterData()"
+                class="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs font-bold uppercase outline-none focus:border-blue-500 text-white w-full md:w-1/6">
+                <option value="all">All Sections</option>
+                <option value="A">Section A</option>
+                <option value="B">Section B</option>
+                <option value="C">Section C</option>
+                <option value="D">Section D</option>
+            </select>
+            <select id="subjectFilter" onchange="filterData()"
+                class="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs font-bold uppercase outline-none focus:border-blue-500 text-white w-full md:w-1/4">
+                <option value="all">All Subjects</option>
+            </select>
             <input type="text" id="searchBox" oninput="filterData()" placeholder="Search Name or Roll Number..."
                 class="flex-1 bg-slate-900 border border-slate-800 p-4 rounded-2xl outline-none focus:border-blue-500 text-sm">
-            <select id="subjectFilter" onchange="filterData()"
-                class="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs font-bold uppercase outline-none focus:border-blue-500 min-w-[200px] text-white">
-                <option value="all">All Subjects View</option>
-            </select>
         </div>
 
         <div class="glass rounded-[2.5rem] overflow-hidden border border-slate-800 shadow-2xl overflow-x-auto">
@@ -123,28 +139,28 @@
 
                 const filter = document.getElementById('subjectFilter');
                 Array.from(codes).sort().forEach(code => {
-                    const opt = document.createElement('option');
-                    opt.value = code;
-                    opt.innerText = code;
-                    filter.appendChild(opt);
+                    const opt = document.createElement('option'); opt.value = code; opt.innerText = code; filter.appendChild(opt);
                 });
 
                 document.getElementById('globalLoader').style.opacity = '0';
                 setTimeout(() => document.getElementById('globalLoader').remove(), 1000);
                 filterData();
-            } catch (e) {
-                console.error("Data Fetch Error", e);
-                alert("Server busy or asleep. Retrying...");
-                setTimeout(loadAnalytics, 2000);
-            }
+            } catch (e) { setTimeout(loadAnalytics, 2000); }
         }
 
         function filterData() {
             const q = document.getElementById('searchBox').value.toLowerCase();
+            const fYear = document.getElementById('fYear').value;
+            const fSec = document.getElementById('fSection').value;
             const fSub = document.getElementById('subjectFilter').value;
             const body = document.getElementById('analyticsBody');
 
-            body.innerHTML = allStudents.filter(s => s.name.toLowerCase().includes(q) || s.roll_no.includes(q)).map(s => {
+            body.innerHTML = allStudents.filter(s => {
+                const matchQ = s.name.toLowerCase().includes(q) || s.roll_no.includes(q);
+                const matchY = fYear === 'all' || s.year.toString() === fYear;
+                const matchSec = fSec === 'all' || s.section === fSec;
+                return matchQ && matchY && matchSec;
+            }).map(s => {
                 let subs = fSub === 'all' ? s.erp.subjects : s.erp.subjects.filter(sub => sub.code === fSub);
                 if (subs.length === 0 && fSub !== 'all') return '';
 
@@ -154,17 +170,9 @@
 
                 return `
                 <tr class="hover:bg-blue-900/5 transition-colors">
-                    <td class="p-6">
-                        <p class="font-bold text-sm text-white">${s.name}</p>
-                        <p class="text-[9px] text-slate-500 font-mono">${s.roll_no}</p>
-                    </td>
-                    <td class="p-6">
-                        <span class="bg-slate-800 text-slate-300 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">${s.branch} - YR ${s.year} [${s.section}]</span>
-                    </td>
-                    <td class="p-6 text-center">
-                        <p class="text-xl font-black ${p < 75 ? 'text-red-500' : 'text-emerald-400'}">${p}%</p>
-                        <p class="text-[8px] text-slate-500 font-bold uppercase">${att}/${held} Lectures</p>
-                    </td>
+                    <td class="p-6"><p class="font-bold text-sm text-white">${s.name}</p><p class="text-[9px] text-slate-500 font-mono">${s.roll_no}</p></td>
+                    <td class="p-6"><span class="bg-slate-800 text-slate-300 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">${s.branch} - YR ${s.year} [${s.section}]</span></td>
+                    <td class="p-6 text-center"><p class="text-xl font-black ${p < 75 ? 'text-red-500' : 'text-emerald-400'}">${p}%</p><p class="text-[8px] text-slate-500 font-bold uppercase">${att}/${held} Lectures</p></td>
                     <td class="p-6 text-right no-print flex justify-end gap-2 items-center h-full">
                         <button onclick="resetDevice('${s.roll_no}')" class="text-[9px] font-black uppercase text-yellow-500 border border-yellow-500/20 px-4 py-2 rounded-xl hover:bg-yellow-600 hover:text-white transition-all">Reset Phone</button>
                         <button onclick="openDossier('${s.roll_no}')" class="text-[9px] font-black uppercase text-blue-400 border border-blue-400/20 px-4 py-2 rounded-xl hover:bg-blue-600 hover:text-white transition-all">View Marks</button>
@@ -174,19 +182,15 @@
         }
 
         async function resetDevice(roll) {
-            if (!confirm(`WARNING: Are you sure you want to let student ${roll} register a new phone?`)) return;
-            try {
-                const res = await fetch(`${API}/reset-student-device?roll_no=${roll}&admin_key=${key}`, { method: 'POST' });
-                if (res.ok) alert("Device reset successful! They can now log in on a new phone.");
-                else alert("Failed to reset device. Check connection.");
-            } catch (e) { alert("Network Error"); }
+            if (!confirm(`WARNING: Are you sure you want to reset student ${roll}?`)) return;
+            await fetch(`${API}/reset-student-device?roll_no=${roll}&admin_key=${key}`, { method: 'POST' });
+            alert("Device reset successful!");
         }
 
         function openDossier(roll) {
             const s = allStudents.find(x => x.roll_no === roll);
             document.getElementById('dossierName').innerText = s.name;
             document.getElementById('dossierRoll').innerText = `ROLL: ${s.roll_no} | ${s.branch} YEAR ${s.year} SEC ${s.section}`;
-
             document.getElementById('dossierContent').innerHTML = s.erp.subjects.map(sub => `
                 <div class="glass p-5 rounded-[2rem] border border-slate-800/80">
                     <div class="flex justify-between items-start mb-4">
@@ -202,7 +206,6 @@
             `).join('');
             document.getElementById('dossierModal').classList.remove('hidden');
         }
-
         function closeDossier() { document.getElementById('dossierModal').classList.add('hidden'); }
 
         function exportToCSV() {
@@ -213,11 +216,8 @@
                 csv += `"${s.name}",${s.roll_no},${s.branch},${s.year},${s.section},${held > 0 ? Math.round((att / held) * 100) : 0}%\n`;
             });
             const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('href', url);
-            a.setAttribute('download', `KNMIET_Master_Report_${new Date().toLocaleDateString()}.csv`);
-            a.click();
+            const a = document.createElement('a'); a.setAttribute('href', URL.createObjectURL(blob));
+            a.setAttribute('download', `KNMIET_Master_Report_${new Date().toLocaleDateString()}.csv`); a.click();
         }
     </script>
 </body>

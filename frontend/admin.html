@@ -43,7 +43,7 @@
     <div id="loginGate"
         class="hidden max-w-md mx-auto mt-16 p-10 glass rounded-[2.5rem] text-center border-t-4 border-blue-600">
         <div class="bg-white p-3 rounded-2xl inline-block shadow-lg mb-6"><img src="knmiet-logo1494x375.webp"
-                class="h-8 object-contain" alt="KNMIET Logo" onerror="this.src='knmiet-logo.webp'"></div>
+                class="h-8 object-contain" alt="Logo" onerror="this.src='knmiet-logo.webp'"></div>
         <h2 class="text-2xl font-bold text-blue-400 mb-6">Director's Terminal</h2>
         <input type="password" id="adminPass" placeholder="Enter Secure Key"
             class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl mb-4 outline-none text-center text-white">
@@ -64,9 +64,7 @@
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
             <div class="glass p-6 rounded-3xl border-l-4 border-yellow-500 h-[600px] flex flex-col">
-
                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Enterprise Roster Upload
                 </h3>
                 <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-700 mb-6">
@@ -81,10 +79,9 @@
                         class="text-[9px] font-bold text-center mt-3 h-3 text-emerald-400 uppercase tracking-widest">
                     </p>
                 </div>
-
                 <h3
                     class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest pt-4 border-t border-slate-800">
-                    Manual Verification List</h3>
+                    Manual Verification</h3>
                 <div id="pendingList" class="space-y-3 overflow-y-auto pr-2 custom-scroll flex-1"></div>
             </div>
 
@@ -123,7 +120,6 @@
                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Curriculum Mapping</h3>
                 <select id="sTeacher"
                     class="w-full bg-slate-900 border border-purple-500 p-3 rounded-xl text-sm mb-4 text-white font-bold outline-none"></select>
-
                 <div id="subjectRows" class="space-y-4 overflow-y-auto pr-2 custom-scroll h-[360px]">
                     <div class="subject-entry bg-slate-950 p-4 rounded-xl border border-slate-700 space-y-3 relative">
                         <button onclick="this.parentElement.remove()"
@@ -170,6 +166,44 @@
                 </div>
             </div>
         </div>
+
+        <div class="glass p-6 rounded-3xl border-l-4 border-cyan-500 mt-8">
+            <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Smart Timetable Engine</h3>
+            <div class="flex gap-4 mb-4">
+                <select id="ttBranch"
+                    class="w-1/4 bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white outline-none">
+                    <option>CSE</option>
+                    <option>IT</option>
+                    <option>AI</option>
+                    <option>ECE</option>
+                    <option>EE</option>
+                    <option>CHE</option>
+                </select>
+                <select id="ttYear"
+                    class="w-1/4 bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white outline-none">
+                    <option value="1">1st Yr</option>
+                    <option value="2">2nd Yr</option>
+                    <option value="3">3rd Yr</option>
+                    <option value="4">4th Yr</option>
+                </select>
+                <select id="ttSection"
+                    class="w-1/4 bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white outline-none">
+                    <option value="A">Sec A</option>
+                    <option value="B">Sec B</option>
+                    <option value="C">Sec C</option>
+                    <option value="D">Sec D</option>
+                </select>
+                <button onclick="loadTimetable()"
+                    class="w-1/4 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-bold text-white transition-all text-[10px] uppercase tracking-widest shadow-lg">Load
+                    Existing</button>
+            </div>
+            <textarea id="ttData"
+                placeholder="Enter daily schedule here. Example:&#10;Monday: 9AM Physics, 10AM Math&#10;Tuesday: 11AM English"
+                class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-sm outline-none text-white focus:border-cyan-500 h-32 custom-scroll mb-4 leading-relaxed"></textarea>
+            <button onclick="saveTimetable()"
+                class="w-full bg-cyan-600 hover:bg-cyan-500 py-4 rounded-xl font-black text-[10px] text-white uppercase tracking-widest transition-all shadow-lg">Deploy
+                Timetable to Students</button>
+        </div>
     </div>
 
     <script>
@@ -210,44 +244,25 @@
                     <p class="text-[10px] text-slate-500 mb-3 font-mono">Roll: ${s.roll_no}</p>
                     <div class="flex gap-2">
                         <button onclick="updateStatus('${s.roll_no}', 'Approved')" class="w-2/3 bg-emerald-600 hover:bg-emerald-500 py-2 rounded-lg text-[10px] font-black uppercase text-white transition-all">Verify</button>
-                        <button onclick="updateStatus('${s.roll_no}', 'Rejected')" class="w-1/3 bg-slate-800 hover:bg-red-600 border border-slate-700 hover:border-red-600 py-2 rounded-lg text-[10px] font-black uppercase text-slate-400 hover:text-white transition-all">Reject</button>
+                        <button onclick="updateStatus('${s.roll_no}', 'Rejected')" class="w-1/3 bg-slate-800 hover:bg-red-600 border border-slate-700 py-2 rounded-lg text-[10px] font-black uppercase text-slate-400 hover:text-white transition-all">Reject</button>
                     </div>
                 </div>`).join('') : '<p class="text-[10px] text-slate-500 italic text-center py-4 uppercase tracking-widest font-bold">No pending verifications.</p>';
 
             document.getElementById('sTeacher').innerHTML = teachers.map(t => `<option value="${t.id}">${t.name} (${t.role})</option>`).join('');
         }
 
-        // NEW: BULK CSV UPLOAD SCRIPT
         async function uploadRoster() {
             const fileInput = document.getElementById('csvFile');
             const msg = document.getElementById('uploadMsg');
-            if (fileInput.files.length === 0) {
-                msg.innerText = "PLEASE SELECT A CSV FILE.";
-                msg.className = "text-[9px] font-bold text-center mt-3 h-3 text-red-500 uppercase tracking-widest";
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append("file", fileInput.files[0]);
-
-            msg.innerText = "UPLOADING TO DATABASE...";
-            msg.className = "text-[9px] font-bold text-center mt-3 h-3 text-blue-400 animate-pulse uppercase tracking-widest";
-
+            if (fileInput.files.length === 0) { msg.innerText = "PLEASE SELECT A CSV FILE."; msg.className = "text-[9px] font-bold text-center mt-3 h-3 text-red-500 uppercase tracking-widest"; return; }
+            const formData = new FormData(); formData.append("file", fileInput.files[0]);
+            msg.innerText = "UPLOADING..."; msg.className = "text-[9px] font-bold text-center mt-3 h-3 text-blue-400 animate-pulse uppercase tracking-widest";
             try {
                 const res = await fetch(`${API}/upload-roster?admin_key=${currentKey}`, { method: 'POST', body: formData });
                 const data = await res.json();
-                if (res.ok) {
-                    msg.innerText = data.message.toUpperCase();
-                    msg.className = "text-[9px] font-bold text-center mt-3 h-3 text-emerald-400 uppercase tracking-widest";
-                    fileInput.value = "";
-                } else {
-                    msg.innerText = "UPLOAD FAILED. CHECK CSV FORMAT.";
-                    msg.className = "text-[9px] font-bold text-center mt-3 h-3 text-red-500 uppercase tracking-widest";
-                }
-            } catch (e) {
-                msg.innerText = "NETWORK ERROR. SERVER OFFLINE.";
-                msg.className = "text-[9px] font-bold text-center mt-3 h-3 text-red-500 uppercase tracking-widest";
-            }
+                if (res.ok) { msg.innerText = data.message.toUpperCase(); msg.className = "text-[9px] font-bold text-center mt-3 h-3 text-emerald-400 uppercase tracking-widest"; fileInput.value = ""; }
+                else { msg.innerText = "UPLOAD FAILED. CHECK CSV FORMAT."; msg.className = "text-[9px] font-bold text-center mt-3 h-3 text-red-500 uppercase tracking-widest"; }
+            } catch (e) { msg.innerText = "NETWORK ERROR."; msg.className = "text-[9px] font-bold text-center mt-3 h-3 text-red-500 uppercase tracking-widest"; }
         }
 
         async function updateStatus(roll, status) {
@@ -275,11 +290,27 @@
         }
 
         async function addTeacher() {
-            const n = document.getElementById('tName').value, e = document.getElementById('tEmail').value;
-            const p = document.getElementById('tPin').value, r = document.getElementById('tRole').value, d = document.getElementById('tDept').value;
+            const n = document.getElementById('tName').value, e = document.getElementById('tEmail').value, p = document.getElementById('tPin').value, r = document.getElementById('tRole').value, d = document.getElementById('tDept').value;
             if (!n || !e || !p || p.length < 4) return alert("Please fill all fields and provide a 4-digit PIN.");
             await fetch(`${API}/add-teacher?name=${encodeURIComponent(n)}&email=${encodeURIComponent(e)}&pin=${encodeURIComponent(p)}&role=${r}&department=${d}&admin_key=${currentKey}`, { method: 'POST' });
             alert(`Staff Registered! Give them PIN: ${p}`); loadData();
+        }
+
+        // NEW: TIMETABLE LOGIC
+        async function loadTimetable() {
+            const groupId = `${document.getElementById('ttBranch').value}-${document.getElementById('ttYear').value}-${document.getElementById('ttSection').value}`;
+            const res = await fetch(`${API}/get-timetable?group_id=${groupId}`);
+            const data = await res.json();
+            if (data.exists) document.getElementById('ttData').value = data.grid_data;
+            else { document.getElementById('ttData').value = ""; alert("No timetable found for this class yet. You can create one now!"); }
+        }
+
+        async function saveTimetable() {
+            const groupId = `${document.getElementById('ttBranch').value}-${document.getElementById('ttYear').value}-${document.getElementById('ttSection').value}`;
+            const ttData = document.getElementById('ttData').value;
+            if (!ttData) return alert("Please enter the timetable data first!");
+            const res = await fetch(`${API}/save-timetable?group_id=${groupId}&grid_data=${encodeURIComponent(ttData)}&admin_key=${currentKey}`, { method: 'POST' });
+            if (res.ok) alert("Timetable Deployed Successfully!");
         }
     </script>
 </body>

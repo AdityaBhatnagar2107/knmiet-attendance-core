@@ -72,19 +72,15 @@ async def upload_roster(admin_key: str, file: UploadFile = File(...), db: Sessio
 async def register(erp_id: str, roll_no: str, name: str, branch: str, year: int, section: str, device_id: str, db: Session = Depends(database.get_db)):
     if len(roll_no) != 13: raise HTTPException(status_code=400, detail="Roll number must be 13 digits")
     existing = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
-    
     if existing:
         if existing.status == "Rejected":
             existing.name = name; existing.branch = branch; existing.year = year; existing.section = section; existing.registered_device = device_id; existing.status = "Pending"
             db.commit(); return {"status": "success", "message": "Re-application submitted."}
-            
         if existing.registered_device == "UNREGISTERED" or existing.registered_device == "PENDING_RESET":
             existing.erp_id = erp_id; existing.name = name; existing.branch = branch; existing.year = year; existing.section = section; existing.registered_device = device_id; existing.status = "Approved"
             db.commit(); return {"status": "success", "message": "Device Linked Successfully! Welcome."}
-            
         if existing.name.strip().lower() == name.strip().lower(): return {"status": "success", "message": "Welcome back!"}
         raise HTTPException(status_code=403, detail="Roll Number already registered to another device!")
-    
     new_student = models.Student(erp_id=erp_id, name=name, roll_no=roll_no, branch=branch, year=year, section=section, registered_device=device_id, status="Pending", total_lectures=0)
     db.add(new_student)
     db.commit()
@@ -212,7 +208,6 @@ async def get_live(subject_id: int, db: Session = Depends(database.get_db)):
         if s: res.append({"name": s.name, "roll_no": s.roll_no, "branch": s.branch, "year": s.year, "section": s.section})
     return res
 
-# --- UPDATED: FACULTY ROSTER (NOW INCLUDES ATTENDANCE COUNT) ---
 @app.get("/subject-roster")
 async def get_roster(subject_id: int, db: Session = Depends(database.get_db)):
     sub = db.query(models.Subject).filter_by(id=subject_id).first()
@@ -222,16 +217,8 @@ async def get_roster(subject_id: int, db: Session = Depends(database.get_db)):
     for s in students:
         m = db.query(models.ExamMarks).filter_by(student_roll=s.roll_no, subject_id=sub.id).first()
         att = db.query(models.Attendance).filter_by(student_roll=s.roll_no, subject_id=sub.id).count()
-        roster.append({
-            "name": s.name, "roll_no": s.roll_no, 
-            "s1": m.sessional_1 if m else 0, "s2": m.sessional_2 if m else 0, "put": m.put_marks if m else 0,
-            "attended": att
-        })
-    return {
-        "roster": roster, 
-        "total_held": sub.total_lectures_held or 0,
-        "filename_data": f"{sub.branch}_Year{sub.year}_Sec{sub.section}_{sub.code}"
-    }
+        roster.append({"name": s.name, "roll_no": s.roll_no, "s1": m.sessional_1 if m else 0, "s2": m.sessional_2 if m else 0, "put": m.put_marks if m else 0, "attended": att})
+    return {"roster": roster, "total_held": sub.total_lectures_held or 0, "filename_data": f"{sub.branch}_Year{sub.year}_Sec{sub.section}_{sub.code}"}
 
 @app.post("/update-marks")
 async def update_m(roll_no: str, subject_id: int, s1: float, s2: float, put: float, db: Session = Depends(database.get_db)):
@@ -242,3 +229,18 @@ async def update_m(roll_no: str, subject_id: int, s1: float, s2: float, put: flo
     if put > 0: m.put_marks = put
     db.commit()
     return {"message": "Saved"}
+
+# --- NEW TIMETABLE LOGIC (Section Targeted) ---
+@app.get("/get-timetable")
+async def get_tt(group_id: str, db: Session = Depends(database.get_db)):
+    tt = db.query(models.Timetable).filter_by(branch_year=group_id).first()
+    return {"exists": True, "grid_data": tt.grid_data} if tt else {"exists": False}
+
+@app.post("/save-timetable")
+async def save_tt(group_id: str, grid_data: str, admin_key: str, db: Session = Depends(database.get_db)):
+    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+    tt = db.query(models.Timetable).filter_by(branch_year=group_id).first()
+    if not tt: db.add(models.Timetable(branch_year=group_id, grid_data=grid_data))
+    else: tt.grid_data = grid_data
+    db.commit()
+    return {"status": "success"}

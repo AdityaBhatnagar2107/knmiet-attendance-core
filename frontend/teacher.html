@@ -122,12 +122,27 @@
                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-6 tracking-widest">Section Roster & Assessment
                     Entry</h3>
 
-                <div class="flex gap-2 mb-6">
+                <div class="flex gap-2 mb-4">
                     <button onclick="loadRoster()"
                         class="w-3/4 bg-slate-800 text-white py-4 rounded-2xl font-black text-xs hover:bg-purple-600 transition-all uppercase tracking-widest shadow-lg border border-slate-700">Fetch
                         Class List</button>
                     <button id="btnExport" onclick="exportExcel()"
                         class="hidden w-1/4 bg-emerald-600 text-white py-4 rounded-2xl font-black text-xs hover:bg-emerald-500 transition-all uppercase tracking-widest shadow-lg">Excel</button>
+                </div>
+
+                <button onclick="viewTimetable()"
+                    class="w-full bg-cyan-900/30 text-cyan-400 border border-cyan-800 py-3 rounded-xl font-bold text-[10px] hover:bg-cyan-600 hover:text-white transition-all uppercase tracking-widest mb-6">Check
+                    Room Schedule</button>
+
+                <div id="ttContainer"
+                    class="hidden mb-6 p-4 bg-slate-950 border border-cyan-500/30 rounded-xl relative">
+                    <button onclick="document.getElementById('ttContainer').classList.add('hidden')"
+                        class="absolute top-2 right-3 text-slate-500 hover:text-white text-xs font-bold">✕</button>
+                    <p
+                        class="text-[9px] text-cyan-500 font-bold uppercase tracking-widest mb-2 border-b border-slate-800 pb-2">
+                        Class Timetable</p>
+                    <pre id="ttDisplay"
+                        class="text-[10px] text-slate-300 whitespace-pre-wrap font-mono leading-relaxed"></pre>
                 </div>
 
                 <div id="rosterHeader"
@@ -145,14 +160,8 @@
     <script>
         const API = "https://knmiet-attendance-core.onrender.com";
         let currentTeacherId = null;
-        let qrInterval = null;
-        let countdownInterval = null;
-        let liveFeedInterval = null;
-
-        // Data stores for the Excel Export
-        let currentRosterData = [];
-        let currentFilenameData = "";
-        let currentTotalHeld = 0;
+        let qrInterval = null; let countdownInterval = null; let liveFeedInterval = null;
+        let currentRosterData = []; let currentFilenameData = ""; let currentTotalHeld = 0;
 
         async function loadTeachers() {
             const res = await fetch(`${API}/get-teachers`);
@@ -175,10 +184,31 @@
             } catch (e) { alert("Server Offline"); }
         }
 
+        // NEW: WE SAVE DATA ATTRIBUTES SO TEACHER CAN PULL THE TIMETABLE
         async function loadSubjects() {
             const res = await fetch(`${API}/teacher-subjects?teacher_id=${currentTeacherId}`);
             const subjects = await res.json();
-            document.getElementById('subjectSelect').innerHTML = subjects.map(s => `<option value="${s.id}">${s.name} [${s.code}] — ${s.branch} YR ${s.year} (SEC ${s.section})</option>`).join('');
+            document.getElementById('subjectSelect').innerHTML = subjects.map(s =>
+                `<option value="${s.id}" data-branch="${s.branch}" data-year="${s.year}" data-sec="${s.section}">${s.name} [${s.code}] — ${s.branch} YR ${s.year} (SEC ${s.section})</option>`
+            ).join('');
+        }
+
+        // NEW: FETCH TIMETABLE SCRIPT
+        async function viewTimetable() {
+            const sel = document.getElementById('subjectSelect');
+            if (!sel.value) return alert("Select a class first!");
+            const opt = sel.options[sel.selectedIndex];
+            const groupId = `${opt.getAttribute('data-branch')}-${opt.getAttribute('data-year')}-${opt.getAttribute('data-sec')}`;
+
+            document.getElementById('ttContainer').classList.remove('hidden');
+            document.getElementById('ttDisplay').innerText = "Fetching schedule...";
+
+            try {
+                const res = await fetch(`${API}/get-timetable?group_id=${groupId}`);
+                const data = await res.json();
+                if (data.exists && data.grid_data) document.getElementById('ttDisplay').innerText = data.grid_data;
+                else document.getElementById('ttDisplay').innerText = "Director has not published a timetable for this section yet.";
+            } catch (e) { document.getElementById('ttDisplay').innerText = "Error loading schedule."; }
         }
 
         async function startSession() {
@@ -187,8 +217,7 @@
             document.getElementById('qrControls').classList.add('hidden');
             document.getElementById('qrContainer').classList.remove('hidden');
             await refreshQR(subId, true);
-            let timeLeft = 5;
-            document.getElementById('timerText').innerText = timeLeft;
+            let timeLeft = 5; document.getElementById('timerText').innerText = timeLeft;
             countdownInterval = setInterval(() => { timeLeft--; if (timeLeft <= 0) timeLeft = 5; document.getElementById('timerText').innerText = timeLeft; }, 1000);
             qrInterval = setInterval(() => { refreshQR(subId, false); }, 5000);
             liveFeedInterval = setInterval(() => { fetchLiveFeed(subId); }, 2000);
@@ -201,8 +230,7 @@
                 const subSelect = document.getElementById('subjectSelect');
                 let subText = subSelect.options[subSelect.selectedIndex].text.replace(/—/g, "-").replace(/[^\x00-\x7F]/g, "");
                 const payload = `${data.current_qr_string}|${subId}|${subText}`;
-                const qrElement = document.getElementById('qrcode');
-                qrElement.innerHTML = "";
+                const qrElement = document.getElementById('qrcode'); qrElement.innerHTML = "";
                 new QRCode(qrElement, { text: payload, width: 180, height: 180, colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.L });
             } catch (e) { }
         }
@@ -235,10 +263,7 @@
             const res = await fetch(`${API}/subject-roster?subject_id=${subId}`);
             const data = await res.json();
 
-            // Save data for Excel Export
-            currentRosterData = data.roster;
-            currentFilenameData = data.filename_data;
-            currentTotalHeld = data.total_held;
+            currentRosterData = data.roster; currentFilenameData = data.filename_data; currentTotalHeld = data.total_held;
 
             document.getElementById('rosterHeader').classList.remove('hidden');
             document.getElementById('btnExport').classList.remove('hidden');
@@ -248,10 +273,7 @@
                 let color = perc >= 75 ? "text-emerald-500" : "text-red-500";
                 return `
                 <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 grid grid-cols-4 items-center gap-2">
-                    <div class="col-span-1 truncate">
-                        <p class="font-bold text-[11px] text-white">${s.name}</p>
-                        <p class="text-[8px] text-slate-500 font-mono">${s.roll_no.slice(-5)} <span class="ml-1 ${color} font-bold">${perc}%</span></p>
-                    </div>
+                    <div class="col-span-1 truncate"><p class="font-bold text-[11px] text-white">${s.name}</p><p class="text-[8px] text-slate-500 font-mono">${s.roll_no.slice(-5)} <span class="ml-1 ${color} font-bold">${perc}%</span></p></div>
                     <input type="number" class="mark-input bg-slate-950 border border-slate-700 text-center text-xs p-2 rounded-lg text-emerald-400 outline-none" value="${s.s1}" onchange="updateM('${s.roll_no}', ${subId}, this.value, 's1', this)">
                     <input type="number" class="mark-input bg-slate-950 border border-slate-700 text-center text-xs p-2 rounded-lg text-emerald-400 outline-none" value="${s.s2}" onchange="updateM('${s.roll_no}', ${subId}, this.value, 's2', this)">
                     <input type="number" class="mark-input bg-slate-950 border border-slate-700 text-center text-xs p-2 rounded-lg text-emerald-400 outline-none" value="${s.put}" onchange="updateM('${s.roll_no}', ${subId}, this.value, 'put', this)">
@@ -259,7 +281,6 @@
             }).join('') : '<p class="text-xs text-slate-500 italic text-center py-4">No verified students in this section.</p>';
         }
 
-        // THE EXCEL EXPORT SCRIPT
         function exportExcel() {
             if (currentRosterData.length === 0) return alert("No data to download.");
             let csv = "Roll Number,Student Name,Attended,Total Lectures,Attendance %,Sessional 1,Sessional 2,PUT Marks\n";
@@ -267,12 +288,8 @@
                 let perc = currentTotalHeld > 0 ? Math.round((s.attended / currentTotalHeld) * 100) : 0;
                 csv += `${s.roll_no},"${s.name}",${s.attended},${currentTotalHeld},${perc}%,${s.s1},${s.s2},${s.put}\n`;
             });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('href', url);
-            a.setAttribute('download', `Class_List_${currentFilenameData}_${new Date().toLocaleDateString()}.csv`);
-            a.click();
+            const a = document.createElement('a'); a.setAttribute('href', URL.createObjectURL(new Blob([csv], { type: 'text/csv' })));
+            a.setAttribute('download', `Class_List_${currentFilenameData}_${new Date().toLocaleDateString()}.csv`); a.click();
         }
 
         async function updateM(roll, subId, val, type, el) {
@@ -284,7 +301,6 @@
                 else el.style.backgroundColor = '#7f1d1d';
             } catch (e) { el.style.backgroundColor = '#7f1d1d'; }
         }
-
         loadTeachers();
     </script>
 </body>

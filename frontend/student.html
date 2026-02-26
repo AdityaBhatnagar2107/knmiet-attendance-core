@@ -46,10 +46,9 @@
 
     <div id="globalLoader"
         class="fixed inset-0 bg-[#020617] z-[9999] flex flex-col items-center justify-center transition-opacity duration-1000">
-        <div class="bg-white p-4 rounded-3xl mb-8 animate-pulse shadow-[0_0_30px_rgba(255,255,255,0.1)]">
-            <img src="knmiet-logo1494x375.webp" class="h-10 object-contain" alt="Logo"
-                onerror="this.src='knmiet-logo.webp'">
-        </div>
+        <div class="bg-white p-4 rounded-3xl mb-8 animate-pulse shadow-[0_0_30px_rgba(255,255,255,0.1)]"><img
+                src="knmiet-logo1494x375.webp" class="h-10 object-contain" alt="Logo"
+                onerror="this.src='knmiet-logo.webp'"></div>
         <div class="w-12 h-12 border-4 border-slate-800 border-t-blue-500 rounded-full animate-spin mb-6"></div>
         <p id="loaderText" class="text-xs text-blue-400 font-bold uppercase tracking-widest">Checking Director
             Authorization...</p>
@@ -110,10 +109,11 @@
 
         <div class="flex gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
             <button id="btnOverview" onclick="switchTab('overview')"
-                class="w-1/2 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest bg-blue-600 text-white transition-all">Overview</button>
+                class="w-1/3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest bg-blue-600 text-white transition-all">Overview</button>
             <button id="btnMatrix" onclick="switchTab('matrix')"
-                class="w-1/2 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all">Date
-                Matrix</button>
+                class="w-1/3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all">Matrix</button>
+            <button id="btnSchedule" onclick="switchTab('schedule')"
+                class="w-1/3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all">Schedule</button>
         </div>
 
         <div id="overviewTab" class="space-y-3 pb-10">
@@ -131,6 +131,13 @@
                 <tbody id="matrixBody" class="divide-y divide-slate-800/50 text-xs"></tbody>
             </table>
         </div>
+
+        <div id="scheduleTab" class="hidden glass p-6 rounded-[2rem] border border-slate-800 shadow-xl">
+            <h3
+                class="text-[10px] font-bold text-cyan-500 uppercase mb-4 tracking-widest border-b border-slate-800 pb-2">
+                Official Class Schedule</h3>
+            <pre id="ttDisplay" class="text-xs text-white whitespace-pre-wrap font-mono leading-relaxed"></pre>
+        </div>
     </div>
 
     <script>
@@ -145,9 +152,7 @@
                 const data = await res.json();
 
                 if (!data.exists) { localStorage.removeItem('student_roll'); window.location.href = "register.html"; return; }
-
-                const l = document.getElementById('globalLoader');
-                if (l) { l.style.opacity = '0'; setTimeout(() => l.remove(), 1000); }
+                const l = document.getElementById('globalLoader'); if (l) { l.style.opacity = '0'; setTimeout(() => l.remove(), 1000); }
 
                 if (data.status === "Approved") {
                     document.getElementById('approvedView').classList.remove('hidden');
@@ -156,6 +161,7 @@
                     document.getElementById('totalLecs').innerText = data.total_lectures;
                     loadData();
                     loadMatrix();
+                    loadTimetable(data.branch, data.year, data.section); // Fetch their schedule
                     startScanner();
                 } else if (data.status === "Rejected") { document.getElementById('rejectedView').classList.remove('hidden'); }
                 else { document.getElementById('pendingView').classList.remove('hidden'); }
@@ -163,21 +169,14 @@
         }
 
         function switchTab(tab) {
-            if (tab === 'overview') {
-                document.getElementById('overviewTab').classList.remove('hidden');
-                document.getElementById('matrixTab').classList.add('hidden');
-                document.getElementById('btnOverview').classList.replace('text-slate-500', 'text-white');
-                document.getElementById('btnOverview').classList.add('bg-blue-600');
-                document.getElementById('btnMatrix').classList.replace('text-white', 'text-slate-500');
-                document.getElementById('btnMatrix').classList.remove('bg-blue-600');
-            } else {
-                document.getElementById('overviewTab').classList.add('hidden');
-                document.getElementById('matrixTab').classList.remove('hidden');
-                document.getElementById('btnMatrix').classList.replace('text-slate-500', 'text-white');
-                document.getElementById('btnMatrix').classList.add('bg-blue-600');
-                document.getElementById('btnOverview').classList.replace('text-white', 'text-slate-500');
-                document.getElementById('btnOverview').classList.remove('bg-blue-600');
-            }
+            ['overview', 'matrix', 'schedule'].forEach(t => {
+                document.getElementById(t + 'Tab').classList.add('hidden');
+                document.getElementById('btn' + t.charAt(0).toUpperCase() + t.slice(1)).classList.replace('text-white', 'text-slate-500');
+                document.getElementById('btn' + t.charAt(0).toUpperCase() + t.slice(1)).classList.remove('bg-blue-600');
+            });
+            document.getElementById(tab + 'Tab').classList.remove('hidden');
+            document.getElementById('btn' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.replace('text-slate-500', 'text-white');
+            document.getElementById('btn' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('bg-blue-600');
         }
 
         function reApply() { localStorage.removeItem('student_roll'); window.location.href = "register.html"; }
@@ -199,36 +198,35 @@
             try {
                 const res = await fetch(`${API}/student-attendance-history?roll_no=${roll}`);
                 const data = await res.json();
-
                 let headersHTML = `<th class="p-4 text-left border-r border-slate-800 sticky left-0 bg-slate-950 z-10">Date</th>`;
                 data.subjects.forEach(sub => { headersHTML += `<th class="p-4 px-6">${sub.code}</th>`; });
                 document.getElementById('matrixHeader').innerHTML = headersHTML;
-
                 const body = document.getElementById('matrixBody');
                 const dates = Object.keys(data.history).sort((a, b) => b.localeCompare(a));
-
-                if (dates.length === 0) {
-                    body.innerHTML = `<tr><td colspan="${data.subjects.length + 1}" class="p-8 text-[10px] text-slate-500 font-bold uppercase italic text-center">No attendance records found.</td></tr>`;
-                    return;
-                }
-
+                if (dates.length === 0) { body.innerHTML = `<tr><td colspan="${data.subjects.length + 1}" class="p-8 text-[10px] text-slate-500 font-bold uppercase italic text-center">No attendance records found.</td></tr>`; return; }
                 let rowsHTML = "";
                 dates.forEach(date => {
                     const attendedSubjects = data.history[date];
                     let row = `<tr><td class="p-4 text-[10px] font-black bg-[#0f172a] text-emerald-400 border-r border-slate-800 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">${date}</td>`;
-
                     data.subjects.forEach(sub => {
-                        if (attendedSubjects.includes(sub.id)) {
-                            row += `<td class="p-4 font-black text-emerald-500">P</td>`;
-                        } else {
-                            row += `<td class="p-4 font-bold text-slate-600">--</td>`;
-                        }
+                        if (attendedSubjects.includes(sub.id)) row += `<td class="p-4 font-black text-emerald-500">P</td>`;
+                        else row += `<td class="p-4 font-bold text-slate-600">--</td>`;
                     });
-                    row += `</tr>`;
-                    rowsHTML += row;
+                    row += `</tr>`; rowsHTML += row;
                 });
                 body.innerHTML = rowsHTML;
-            } catch (e) { console.error("Failed to load matrix", e); }
+            } catch (e) { }
+        }
+
+        // NEW: LOAD TIMETABLE
+        async function loadTimetable(branch, year, section) {
+            const groupId = `${branch}-${year}-${section}`;
+            try {
+                const res = await fetch(`${API}/get-timetable?group_id=${groupId}`);
+                const data = await res.json();
+                if (data.exists && data.grid_data) document.getElementById('ttDisplay').innerText = data.grid_data;
+                else document.getElementById('ttDisplay').innerText = "No timetable published yet for your class.";
+            } catch (e) { document.getElementById('ttDisplay').innerText = "Error loading schedule."; }
         }
 
         function startScanner() {

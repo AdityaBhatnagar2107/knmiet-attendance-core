@@ -37,10 +37,13 @@
         </div>
 
         <div class="space-y-4">
-            <input type="text" id="erpId" placeholder="ERP ID (e.g. KNMIET1234)"
-                class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-sm outline-none text-white focus:border-blue-500 transition-colors">
-            <input type="number" id="rollNo" placeholder="13-Digit University Roll No"
+            <input type="text" id="erpId" maxlength="11" placeholder="ERP ID (Max 11 Chars)"
+                class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-sm outline-none text-white focus:border-blue-500 transition-colors uppercase">
+
+            <input type="number" id="rollNo" oninput="if(this.value.length > 13) this.value = this.value.slice(0, 13);"
+                placeholder="13-Digit University Roll No"
                 class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-sm outline-none font-mono text-white focus:border-blue-500 transition-colors">
+
             <input type="text" id="name" placeholder="Full Legal Name"
                 class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-sm outline-none text-white focus:border-blue-500 transition-colors">
 
@@ -85,7 +88,6 @@
     <script>
         const API = "https://knmiet-attendance-core.onrender.com";
 
-        // Auto-redirect if device is already registered
         if (localStorage.getItem('student_roll')) window.location.href = "student.html";
 
         function generateDeviceID() {
@@ -107,8 +109,15 @@
                 return;
             }
 
+            // EXTRA JS VALIDATION
+            if (erpId.length > 11) {
+                msg.innerText = "ERP ID CANNOT EXCEED 11 CHARS";
+                msg.className = "text-center mt-6 text-[10px] uppercase font-black tracking-widest text-yellow-500";
+                return;
+            }
+
             if (rollNo.length !== 13) {
-                msg.innerText = "ROLL NUMBER MUST BE 13 DIGITS";
+                msg.innerText = "ROLL NUMBER MUST BE EXACTLY 13 DIGITS";
                 msg.className = "text-center mt-6 text-[10px] uppercase font-black tracking-widest text-yellow-500";
                 return;
             }
@@ -123,7 +132,6 @@
             msg.className = "text-center mt-6 text-[10px] uppercase font-black tracking-widest text-blue-400 animate-pulse";
 
             try {
-                // We now send the Section parameter to the server
                 const res = await fetch(`${API}/register-student?erp_id=${erpId}&roll_no=${rollNo}&name=${encodeURIComponent(name)}&branch=${branch}&year=${year}&section=${section}&device_id=${deviceId}`, { method: 'POST' });
                 const data = await res.json();
 

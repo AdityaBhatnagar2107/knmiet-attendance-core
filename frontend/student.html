@@ -21,6 +21,15 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
+        .custom-scroll::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 10px;
+        }
+
         #reader {
             width: 100% !important;
             border: none !important;
@@ -33,36 +42,65 @@
 </head>
 
 <body class="p-4 flex flex-col items-center" onload="checkStatus()">
-    <div id="globalLoader" class="fixed inset-0 bg-[#020617] z-[9999] flex flex-col items-center justify-center">
-        <div class="w-10 h-10 border-4 border-t-blue-500 rounded-full animate-spin"></div>
+
+    <div id="globalLoader"
+        class="fixed inset-0 bg-[#020617] z-[9999] flex flex-col items-center justify-center transition-opacity duration-1000">
+        <div class="bg-white p-4 rounded-3xl mb-8 animate-pulse"><img src="knmiet-logo1494x375.webp"
+                class="h-10 object-contain" alt="Logo"></div>
+        <div class="w-12 h-12 border-4 border-slate-800 border-t-blue-500 rounded-full animate-spin mb-6"></div>
+        <p id="loaderText" class="text-xs text-blue-400 font-bold uppercase tracking-widest">Checking Director
+            Authorization...</p>
     </div>
 
-    <div id="pendingView" class="hidden mt-10 p-6 glass rounded-3xl text-center">
-        <h2 class="text-xl font-bold text-yellow-500">Approval Pending</h2>
+    <div id="pendingView"
+        class="hidden mt-10 w-full max-w-sm glass p-8 rounded-[3rem] text-center border-t-4 border-yellow-500 shadow-2xl">
+        <div
+            class="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-yellow-500/20">
+            <span class="text-2xl">⏳</span>
+        </div>
+        <h2 class="text-xl font-black text-yellow-500">Under Review</h2>
+        <p class="text-[10px] text-slate-400 mt-3 font-bold uppercase tracking-widest leading-relaxed">Your device
+            registration is currently pending review by the Director.</p>
         <button onclick="location.reload()"
-            class="mt-4 bg-yellow-600 px-6 py-2 rounded-xl text-xs font-bold uppercase">Refresh</button>
+            class="mt-8 w-full bg-yellow-600 hover:bg-yellow-500 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-lg text-white">Refresh
+            Status</button>
     </div>
 
-    <div id="approvedView" class="hidden w-full max-w-md space-y-6">
+    <div id="rejectedView"
+        class="hidden mt-10 w-full max-w-sm glass p-8 rounded-[3rem] text-center border-t-4 border-red-500 shadow-2xl">
+        <div
+            class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
+            <span class="text-2xl">❌</span>
+        </div>
+        <h2 class="text-xl font-black text-red-500">Request Denied</h2>
+        <p class="text-[10px] text-slate-400 mt-3 font-bold uppercase tracking-widest leading-relaxed">The Director has
+            rejected your access request. Your credentials or roll number may be incorrect.</p>
+        <button onclick="reApply()"
+            class="mt-8 w-full bg-slate-800 border border-red-500/50 hover:bg-red-600 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all shadow-lg text-white">Clear
+            Data & Re-Apply</button>
+    </div>
+
+    <div id="approvedView" class="hidden w-full max-w-md space-y-6 animate-in fade-in duration-500">
         <div class="glass p-6 rounded-[2rem] border-l-4 border-blue-500 shadow-xl">
             <h1 id="sName" class="text-xl font-black truncate">Student</h1>
             <div class="flex justify-between items-end mt-2">
-                <p id="sBranch" class="text-blue-400 text-[10px] font-bold uppercase"></p>
+                <p id="sBranch" class="text-blue-400 text-[10px] font-bold uppercase tracking-widest"></p>
                 <div class="text-right">
-                    <p class="text-[9px] text-slate-500 uppercase">Total Scans</p>
-                    <p id="totalLecs" class="text-2xl font-black text-emerald-400">0</p>
+                    <p class="text-[8px] text-slate-500 uppercase font-bold">Total Scans</p>
+                    <p id="totalLecs" class="text-2xl font-black text-emerald-400 leading-none mt-1">0</p>
                 </div>
             </div>
         </div>
 
-        <div class="glass p-4 rounded-[2rem] overflow-hidden">
+        <div class="glass p-4 rounded-[2rem] overflow-hidden border border-slate-800 shadow-lg">
             <div id="reader" class="rounded-2xl"></div>
-            <p id="scanMsg" class="text-center text-[10px] font-bold uppercase text-slate-500 mt-4 italic">Scan
-                Teacher's QR</p>
+            <p id="scanMsg"
+                class="text-center text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-4 italic">Align QR
+                to Mark Attendance</p>
         </div>
 
         <div class="space-y-3">
-            <h3 class="text-[10px] font-bold text-slate-500 uppercase px-2 tracking-widest">Subject-wise Attendance</h3>
+            <h3 class="text-[9px] font-bold text-slate-500 uppercase px-2 tracking-widest">Aggregate Performance</h3>
             <div id="subjectList" class="space-y-3 pb-10"></div>
         </div>
     </div>
@@ -75,17 +113,39 @@
         async function checkStatus() {
             if (!roll) { window.location.href = "register.html"; return; }
             try {
+                // Cache-Buster
                 const res = await fetch(`${API}/student-profile?roll_no=${roll}&t=${Date.now()}`);
                 const data = await res.json();
-                document.getElementById('globalLoader').classList.add('hidden');
-                if (data.is_approved) {
+
+                const l = document.getElementById('globalLoader');
+                if (l) { l.style.opacity = '0'; setTimeout(() => l.remove(), 1000); }
+
+                // The New 3-State Logic
+                if (data.status === "Approved") {
                     document.getElementById('approvedView').classList.remove('hidden');
                     document.getElementById('sName').innerText = data.name;
-                    document.getElementById('sBranch').innerText = `${data.branch} | YR ${data.year}`;
+                    // Injecting Section into the Header
+                    document.getElementById('sBranch').innerText = `${data.branch} - YR ${data.year} [SEC ${data.section}]`;
                     document.getElementById('totalLecs').innerText = data.total_lectures;
-                    loadData(); startScanner();
-                } else document.getElementById('pendingView').classList.remove('hidden');
-            } catch (e) { location.reload(); }
+                    loadData();
+                    startScanner();
+                }
+                else if (data.status === "Rejected") {
+                    document.getElementById('rejectedView').classList.remove('hidden');
+                }
+                else {
+                    document.getElementById('pendingView').classList.remove('hidden');
+                }
+            } catch (e) {
+                document.getElementById('loaderText').innerText = "OFFLINE. RETRYING...";
+                setTimeout(() => location.reload(), 3000);
+            }
+        }
+
+        function reApply() {
+            // Completely clears the browser memory so they aren't stuck anymore!
+            localStorage.removeItem('student_roll');
+            window.location.href = "register.html";
         }
 
         async function loadData() {
@@ -97,14 +157,14 @@
                 <div class="glass p-4 rounded-2xl border-l-2 ${p >= 75 ? 'border-emerald-500' : 'border-red-500'}">
                     <div class="flex justify-between items-start">
                         <div class="max-w-[70%]">
-                            <p class="text-[9px] font-bold text-blue-500 uppercase">${s.code}</p>
+                            <p class="text-[9px] font-bold tracking-widest text-blue-500 uppercase">${s.code}</p>
                             <p class="font-bold text-xs truncate">${s.subject_name}</p>
                         </div>
                         <p class="font-black text-lg ${p >= 75 ? 'text-emerald-400' : 'text-red-500'}">${p}%</p>
                     </div>
                     <div class="flex justify-between text-[9px] font-bold text-slate-500 mt-3 uppercase">
-                        <span>Attended: ${s.attended} / ${s.total_held}</span>
-                        <span>Marks: ${s.s1}|${s.s2}|${s.put}</span>
+                        <span>Attended: <span class="text-white">${s.attended} / ${s.total_held}</span></span>
+                        <span>Marks: <span class="text-white">${s.s1}|${s.s2}|${s.put}</span></span>
                     </div>
                 </div>`;
             }).join('');
@@ -116,7 +176,7 @@
                 scanner.pause();
                 const [q, subId] = txt.split('|');
                 const res = await fetch(`${API}/mark-attendance?roll_no=${roll}&qr_content=${q}&subject_id=${subId}&device_id=${devID}`, { method: 'POST' });
-                if (res.ok) { document.getElementById('scanMsg').innerText = "SUCCESS!"; setTimeout(() => location.reload(), 1500); }
+                if (res.ok) { document.getElementById('scanMsg').innerText = "SECURED!"; setTimeout(() => location.reload(), 1500); }
                 else { const e = await res.json(); alert(e.detail); scanner.resume(); }
             }, () => { });
         }

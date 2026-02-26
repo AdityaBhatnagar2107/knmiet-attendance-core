@@ -10,10 +10,8 @@ class Student(Base):
     name = Column(String)
     branch = Column(String)
     year = Column(Integer)
-    # NEW: Section added for Enterprise Scaling
     section = Column(String) 
     registered_device = Column(String)
-    # NEW: Status string replaces is_approved boolean
     status = Column(String, default="Pending") 
     total_lectures = Column(Integer, default=0)
 
@@ -33,7 +31,6 @@ class Subject(Base):
     code = Column(String)
     branch = Column(String)
     year = Column(Integer)
-    # NEW: Section isolation for subjects
     section = Column(String) 
     teacher_id = Column(Integer)
     total_lectures_held = Column(Integer, default=0)
@@ -59,3 +56,12 @@ class Timetable(Base):
     id = Column(Integer, primary_key=True, index=True)
     branch_year = Column(String, unique=True)
     grid_data = Column(String)
+
+# NEW: LEAVE MANAGEMENT TABLE
+class LeaveRequest(Base):
+    __tablename__ = "leave_requests"
+    id = Column(Integer, primary_key=True, index=True)
+    student_roll = Column(String, index=True)
+    date_req = Column(String)
+    reason = Column(String)
+    status = Column(String, default="Pending")

@@ -60,8 +60,6 @@
             class="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-yellow-500/20">
             <span class="text-2xl">⏳</span></div>
         <h2 class="text-xl font-black text-yellow-500">Under Review</h2>
-        <p class="text-[10px] text-slate-400 mt-3 font-bold uppercase tracking-widest leading-relaxed">Your device
-            registration is pending review by the Director.</p>
         <button onclick="location.reload()"
             class="mt-8 w-full bg-yellow-600 hover:bg-yellow-500 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-white transition-all">Refresh
             Status</button>
@@ -73,20 +71,15 @@
             class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
             <span class="text-2xl">❌</span></div>
         <h2 class="text-xl font-black text-red-500">Request Denied</h2>
-        <p class="text-[10px] text-slate-400 mt-3 font-bold uppercase tracking-widest leading-relaxed">The Director has
-            rejected your access request.</p>
         <button onclick="reApply()"
             class="mt-8 w-full bg-slate-800 border border-red-500/50 hover:bg-red-600 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-white transition-all">Clear
             Data & Re-Apply</button>
     </div>
 
     <div id="approvedView" class="hidden w-full max-w-md space-y-6 animate-in fade-in duration-500">
-
         <div class="text-center mt-2 mb-4">
-            <div class="bg-white p-3 rounded-2xl inline-block shadow-lg">
-                <img src="knmiet-logo1494x375.webp" class="h-8 object-contain" alt="KNMIET Logo"
-                    onerror="this.src='knmiet-logo.webp'">
-            </div>
+            <div class="bg-white p-3 rounded-2xl inline-block shadow-lg"><img src="knmiet-logo1494x375.webp"
+                    class="h-8 object-contain" alt="Logo" onerror="this.src='knmiet-logo.webp'"></div>
         </div>
 
         <div class="glass p-6 rounded-[2rem] border-l-4 border-blue-500 shadow-xl">
@@ -94,8 +87,8 @@
             <div class="flex justify-between items-end mt-2">
                 <p id="sBranch" class="text-blue-400 text-[10px] font-bold uppercase tracking-widest"></p>
                 <div class="text-right">
-                    <p class="text-[8px] text-slate-500 uppercase font-bold">Total Scans</p>
-                    <p id="totalLecs" class="text-2xl font-black text-emerald-400 leading-none mt-1">0</p>
+                    <p class="text-[8px] text-slate-500 uppercase font-bold">Scans / Leaves</p>
+                    <p id="totalLecs" class="text-2xl font-black text-emerald-400 leading-none mt-1">0 / 0</p>
                 </div>
             </div>
         </div>
@@ -107,13 +100,15 @@
                 to Mark Attendance</p>
         </div>
 
-        <div class="flex gap-2 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
+        <div class="flex gap-1 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
             <button id="btnOverview" onclick="switchTab('overview')"
-                class="w-1/3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest bg-blue-600 text-white transition-all">Overview</button>
+                class="w-1/4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest bg-blue-600 text-white transition-all">Score</button>
             <button id="btnMatrix" onclick="switchTab('matrix')"
-                class="w-1/3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all">Matrix</button>
+                class="w-1/4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all">Matrix</button>
             <button id="btnSchedule" onclick="switchTab('schedule')"
-                class="w-1/3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all">Schedule</button>
+                class="w-1/4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all">Timetable</button>
+            <button id="btnLeave" onclick="switchTab('leave')"
+                class="w-1/4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all text-purple-400">Leave</button>
         </div>
 
         <div id="overviewTab" class="space-y-3 pb-10">
@@ -136,7 +131,28 @@
             <h3
                 class="text-[10px] font-bold text-cyan-500 uppercase mb-4 tracking-widest border-b border-slate-800 pb-2">
                 Official Class Schedule</h3>
-            <pre id="ttDisplay" class="text-xs text-white whitespace-pre-wrap font-mono leading-relaxed"></pre>
+            <pre id="ttDisplay" class="text-[10px] text-white whitespace-pre-wrap font-mono leading-relaxed"></pre>
+        </div>
+
+        <div id="leaveTab" class="hidden space-y-4 pb-10">
+            <div class="glass p-6 rounded-[2rem] border border-slate-800 shadow-xl">
+                <h3
+                    class="text-[10px] font-bold text-purple-400 uppercase mb-4 tracking-widest border-b border-slate-800 pb-2">
+                    Request Official Leave</h3>
+                <input type="date" id="leaveDate"
+                    class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-sm outline-none text-white mb-3 focus:border-purple-500 text-slate-400">
+                <textarea id="leaveReason" placeholder="Reason (e.g., Hackathon, Medical Issue...)"
+                    class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-sm outline-none text-white h-24 mb-3 focus:border-purple-500"></textarea>
+                <button onclick="submitLeave()"
+                    class="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-xl font-black text-[10px] text-white uppercase tracking-widest transition-all shadow-lg shadow-purple-900/50">Submit
+                    Request</button>
+            </div>
+            <div class="glass p-6 rounded-[2rem] border border-slate-800 shadow-xl">
+                <h3
+                    class="text-[10px] font-bold text-slate-400 uppercase mb-4 tracking-widest border-b border-slate-800 pb-2">
+                    Leave History</h3>
+                <div id="leaveHistory" class="space-y-3 max-h-48 overflow-y-auto custom-scroll pr-2"></div>
+            </div>
         </div>
     </div>
 
@@ -150,7 +166,6 @@
             try {
                 const res = await fetch(`${API}/student-profile?roll_no=${roll}&t=${Date.now()}`);
                 const data = await res.json();
-
                 if (!data.exists) { localStorage.removeItem('student_roll'); window.location.href = "register.html"; return; }
                 const l = document.getElementById('globalLoader'); if (l) { l.style.opacity = '0'; setTimeout(() => l.remove(), 1000); }
 
@@ -158,10 +173,9 @@
                     document.getElementById('approvedView').classList.remove('hidden');
                     document.getElementById('sName').innerText = data.name;
                     document.getElementById('sBranch').innerText = `${data.branch} - YR ${data.year} [SEC ${data.section}]`;
-                    document.getElementById('totalLecs').innerText = data.total_lectures;
-                    loadData();
-                    loadMatrix();
-                    loadTimetable(data.branch, data.year, data.section); // Fetch their schedule
+                    document.getElementById('totalLecs').innerText = `${data.total_lectures} / ${data.official_leaves || 0}`;
+                    loadData(); loadMatrix(); loadLeaves();
+                    loadTimetable(data.branch, data.year, data.section);
                     startScanner();
                 } else if (data.status === "Rejected") { document.getElementById('rejectedView').classList.remove('hidden'); }
                 else { document.getElementById('pendingView').classList.remove('hidden'); }
@@ -169,7 +183,7 @@
         }
 
         function switchTab(tab) {
-            ['overview', 'matrix', 'schedule'].forEach(t => {
+            ['overview', 'matrix', 'schedule', 'leave'].forEach(t => {
                 document.getElementById(t + 'Tab').classList.add('hidden');
                 document.getElementById('btn' + t.charAt(0).toUpperCase() + t.slice(1)).classList.replace('text-white', 'text-slate-500');
                 document.getElementById('btn' + t.charAt(0).toUpperCase() + t.slice(1)).classList.remove('bg-blue-600');
@@ -204,13 +218,20 @@
                 const body = document.getElementById('matrixBody');
                 const dates = Object.keys(data.history).sort((a, b) => b.localeCompare(a));
                 if (dates.length === 0) { body.innerHTML = `<tr><td colspan="${data.subjects.length + 1}" class="p-8 text-[10px] text-slate-500 font-bold uppercase italic text-center">No attendance records found.</td></tr>`; return; }
+
                 let rowsHTML = "";
                 dates.forEach(date => {
                     const attendedSubjects = data.history[date];
                     let row = `<tr><td class="p-4 text-[10px] font-black bg-[#0f172a] text-emerald-400 border-r border-slate-800 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">${date}</td>`;
                     data.subjects.forEach(sub => {
-                        if (attendedSubjects.includes(sub.id)) row += `<td class="p-4 font-black text-emerald-500">P</td>`;
-                        else row += `<td class="p-4 font-bold text-slate-600">--</td>`;
+                        if (attendedSubjects.includes(sub.id)) {
+                            row += `<td class="p-4 font-black text-emerald-500">P</td>`;
+                        } else if (data.approved_leaves && data.approved_leaves.includes(date)) {
+                            // MAGIC: If it's an approved leave date, show a yellow L!
+                            row += `<td class="p-4 font-black text-yellow-500">L</td>`;
+                        } else {
+                            row += `<td class="p-4 font-bold text-slate-600">--</td>`;
+                        }
                     });
                     row += `</tr>`; rowsHTML += row;
                 });
@@ -218,7 +239,6 @@
             } catch (e) { }
         }
 
-        // NEW: LOAD TIMETABLE
         async function loadTimetable(branch, year, section) {
             const groupId = `${branch}-${year}-${section}`;
             try {
@@ -227,6 +247,30 @@
                 if (data.exists && data.grid_data) document.getElementById('ttDisplay').innerText = data.grid_data;
                 else document.getElementById('ttDisplay').innerText = "No timetable published yet for your class.";
             } catch (e) { document.getElementById('ttDisplay').innerText = "Error loading schedule."; }
+        }
+
+        async function submitLeave() {
+            const rawDate = document.getElementById('leaveDate').value;
+            const reason = document.getElementById('leaveReason').value;
+            if (!rawDate || !reason) return alert("Please select a date and enter a reason.");
+
+            // Format to match Matrix "DD-MM-YY"
+            const [yyyy, mm, dd] = rawDate.split('-');
+            const formattedDate = `${dd}-${mm}-${yyyy.slice(-2)}`;
+
+            await fetch(`${API}/request-leave?roll_no=${roll}&date_req=${formattedDate}&reason=${encodeURIComponent(reason)}`, { method: 'POST' });
+            alert("Leave Request Submitted to Director.");
+            document.getElementById('leaveDate').value = ""; document.getElementById('leaveReason').value = "";
+            loadLeaves();
+        }
+
+        async function loadLeaves() {
+            const res = await fetch(`${API}/student-leaves?roll_no=${roll}`);
+            const leaves = await res.json();
+            document.getElementById('leaveHistory').innerHTML = leaves.length ? leaves.map(l => {
+                let color = l.status === "Approved" ? "text-emerald-400 border-emerald-500/30 bg-emerald-900/10" : l.status === "Rejected" ? "text-red-400 border-red-500/30 bg-red-900/10" : "text-yellow-400 border-yellow-500/30 bg-yellow-900/10";
+                return `<div class="p-3 rounded-xl border ${color}"><div class="flex justify-between items-center"><p class="text-[10px] font-black tracking-widest uppercase">${l.date_req}</p><p class="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-slate-950">${l.status}</p></div><p class="text-[10px] text-slate-300 italic mt-1">${l.reason}</p></div>`;
+            }).join('') : '<p class="text-[10px] text-slate-500 italic text-center py-4 uppercase tracking-widest">No past requests.</p>';
         }
 
         function startScanner() {

@@ -79,10 +79,16 @@
                         class="text-[9px] font-bold text-center mt-3 h-3 text-emerald-400 uppercase tracking-widest">
                     </p>
                 </div>
+
                 <h3
                     class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest pt-4 border-t border-slate-800">
                     Manual Verification</h3>
-                <div id="pendingList" class="space-y-3 overflow-y-auto pr-2 custom-scroll flex-1"></div>
+                <div id="pendingList" class="space-y-3 overflow-y-auto pr-2 custom-scroll h-28 mb-4"></div>
+
+                <h3
+                    class="text-xs font-bold text-purple-400 uppercase mb-4 tracking-widest pt-4 border-t border-slate-800">
+                    Leave Approvals</h3>
+                <div id="leaveList" class="space-y-3 overflow-y-auto pr-2 custom-scroll flex-1"></div>
             </div>
 
             <div class="glass p-6 rounded-3xl border-l-4 border-emerald-500 h-[600px]">
@@ -232,8 +238,10 @@
         async function loadData() {
             const sRes = await fetch(`${API}/pending-students?admin_key=${currentKey}`);
             const tRes = await fetch(`${API}/get-teachers`);
+            const lRes = await fetch(`${API}/pending-leaves?admin_key=${currentKey}`); // NEW: Fetch Leaves
             const students = await sRes.json();
             const teachers = await tRes.json();
+            const leaves = await lRes.json();
 
             document.getElementById('loginGate').classList.add('hidden');
             document.getElementById('dashboard').classList.remove('hidden');
@@ -248,7 +256,23 @@
                     </div>
                 </div>`).join('') : '<p class="text-[10px] text-slate-500 italic text-center py-4 uppercase tracking-widest font-bold">No pending verifications.</p>';
 
+            // NEW: Render Leave List
+            document.getElementById('leaveList').innerHTML = leaves.length ? leaves.map(l => `
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-purple-500/30">
+                    <p class="font-bold text-sm text-white">${l.name} <span class="text-[9px] text-purple-400 bg-purple-900/30 px-2 rounded">${l.date_req}</span></p>
+                    <p class="text-[10px] text-slate-400 italic mb-3 mt-1 break-words">"${l.reason}"</p>
+                    <div class="flex gap-2">
+                        <button onclick="updateLeave(${l.id}, 'Approved')" class="w-1/2 bg-emerald-600 hover:bg-emerald-500 py-2 rounded-lg text-[10px] font-black uppercase text-white transition-all">Approve</button>
+                        <button onclick="updateLeave(${l.id}, 'Rejected')" class="w-1/2 bg-slate-800 hover:bg-red-600 border border-slate-700 py-2 rounded-lg text-[10px] font-black uppercase text-slate-400 hover:text-white transition-all">Reject</button>
+                    </div>
+                </div>`).join('') : '<p class="text-[10px] text-slate-500 italic text-center py-4 uppercase tracking-widest font-bold">No pending leaves.</p>';
+
             document.getElementById('sTeacher').innerHTML = teachers.map(t => `<option value="${t.id}">${t.name} (${t.role})</option>`).join('');
+        }
+
+        async function updateLeave(id, status) {
+            await fetch(`${API}/update-leave-status?leave_id=${id}&status=${status}&admin_key=${currentKey}`, { method: 'POST' });
+            loadData();
         }
 
         async function uploadRoster() {
@@ -285,8 +309,7 @@
                 const branch = entry.querySelector('.sBranch').value, year = entry.querySelector('.sYear').value, section = entry.querySelector('.sSection').value;
                 if (name && code) await fetch(`${API}/assign-subject?name=${encodeURIComponent(name)}&code=${encodeURIComponent(code)}&branch=${branch}&year=${year}&section=${section}&teacher_id=${tid}&admin_key=${currentKey}`, { method: 'POST' });
             }
-            alert("Curriculum Linked Successfully!");
-            loadData();
+            alert("Curriculum Linked Successfully!"); loadData();
         }
 
         async function addTeacher() {
@@ -296,7 +319,6 @@
             alert(`Staff Registered! Give them PIN: ${p}`); loadData();
         }
 
-        // NEW: TIMETABLE LOGIC
         async function loadTimetable() {
             const groupId = `${document.getElementById('ttBranch').value}-${document.getElementById('ttYear').value}-${document.getElementById('ttSection').value}`;
             const res = await fetch(`${API}/get-timetable?group_id=${groupId}`);

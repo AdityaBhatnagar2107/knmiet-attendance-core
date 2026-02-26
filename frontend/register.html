@@ -28,9 +28,11 @@
         class="glass w-full max-w-md p-8 rounded-[2.5rem] border-t-4 border-blue-600 shadow-2xl relative overflow-hidden">
         <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-emerald-500"></div>
 
-        <div class="text-center mb-8">
-            <img src="knmiet-logo1494x375.webp" class="h-10 mx-auto object-contain mb-4" alt="KNMIET Logo"
-                onerror="this.src='knmiet-logo.webp'">
+        <div class="text-center mb-8 mt-2">
+            <div class="bg-white p-3 rounded-2xl inline-block shadow-lg mb-4">
+                <img src="knmiet-logo1494x375.webp" class="h-10 mx-auto object-contain" alt="KNMIET Logo"
+                    onerror="this.src='knmiet-logo.webp'">
+            </div>
             <h1 class="text-2xl font-black tracking-tight">Student ERP Setup</h1>
             <p class="text-[10px] text-blue-400 font-bold uppercase tracking-widest mt-1">Device Registration & Access
             </p>
@@ -90,9 +92,7 @@
 
         if (localStorage.getItem('student_roll')) window.location.href = "student.html";
 
-        function generateDeviceID() {
-            return 'dev_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
-        }
+        function generateDeviceID() { return 'dev_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now(); }
 
         async function register() {
             const erpId = document.getElementById('erpId').value.trim();
@@ -109,7 +109,6 @@
                 return;
             }
 
-            // EXTRA JS VALIDATION
             if (erpId.length > 11) {
                 msg.innerText = "ERP ID CANNOT EXCEED 11 CHARS";
                 msg.className = "text-center mt-6 text-[10px] uppercase font-black tracking-widest text-yellow-500";
@@ -123,10 +122,7 @@
             }
 
             let deviceId = localStorage.getItem('cse22_dev_id');
-            if (!deviceId) {
-                deviceId = generateDeviceID();
-                localStorage.setItem('cse22_dev_id', deviceId);
-            }
+            if (!deviceId) { deviceId = generateDeviceID(); localStorage.setItem('cse22_dev_id', deviceId); }
 
             msg.innerText = "ENCRYPTING & SUBMITTING...";
             msg.className = "text-center mt-6 text-[10px] uppercase font-black tracking-widest text-blue-400 animate-pulse";

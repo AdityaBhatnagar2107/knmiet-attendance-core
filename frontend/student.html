@@ -5,8 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Student Portal | KNMIET</title>
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-    <script src="[https://unpkg.com/html5-qrcode](https://unpkg.com/html5-qrcode)"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         body {
             background: #020617;
@@ -46,8 +46,10 @@
 
     <div id="globalLoader"
         class="fixed inset-0 bg-[#020617] z-[9999] flex flex-col items-center justify-center transition-opacity duration-1000">
-        <div class="bg-white p-4 rounded-3xl mb-8 animate-pulse"><img src="knmiet-logo1494x375.webp"
-                class="h-10 object-contain" alt="Logo"></div>
+        <div class="bg-white p-4 rounded-3xl mb-8 animate-pulse shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+            <img src="knmiet-logo1494x375.webp" class="h-10 object-contain" alt="Logo"
+                onerror="this.src='knmiet-logo.webp'">
+        </div>
         <div class="w-12 h-12 border-4 border-slate-800 border-t-blue-500 rounded-full animate-spin mb-6"></div>
         <p id="loaderText" class="text-xs text-blue-400 font-bold uppercase tracking-widest">Checking Director
             Authorization...</p>
@@ -59,8 +61,10 @@
             class="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-yellow-500/20">
             <span class="text-2xl">⏳</span></div>
         <h2 class="text-xl font-black text-yellow-500">Under Review</h2>
+        <p class="text-[10px] text-slate-400 mt-3 font-bold uppercase tracking-widest leading-relaxed">Your device
+            registration is pending review by the Director.</p>
         <button onclick="location.reload()"
-            class="mt-8 w-full bg-yellow-600 hover:bg-yellow-500 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-white">Refresh
+            class="mt-8 w-full bg-yellow-600 hover:bg-yellow-500 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-white transition-all">Refresh
             Status</button>
     </div>
 
@@ -70,12 +74,22 @@
             class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
             <span class="text-2xl">❌</span></div>
         <h2 class="text-xl font-black text-red-500">Request Denied</h2>
+        <p class="text-[10px] text-slate-400 mt-3 font-bold uppercase tracking-widest leading-relaxed">The Director has
+            rejected your access request.</p>
         <button onclick="reApply()"
-            class="mt-8 w-full bg-slate-800 border border-red-500/50 hover:bg-red-600 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-white">Clear
+            class="mt-8 w-full bg-slate-800 border border-red-500/50 hover:bg-red-600 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-white transition-all">Clear
             Data & Re-Apply</button>
     </div>
 
     <div id="approvedView" class="hidden w-full max-w-md space-y-6 animate-in fade-in duration-500">
+
+        <div class="text-center mt-2 mb-4">
+            <div class="bg-white p-3 rounded-2xl inline-block shadow-lg">
+                <img src="knmiet-logo1494x375.webp" class="h-8 object-contain" alt="KNMIET Logo"
+                    onerror="this.src='knmiet-logo.webp'">
+            </div>
+        </div>
+
         <div class="glass p-6 rounded-[2rem] border-l-4 border-blue-500 shadow-xl">
             <h1 id="sName" class="text-xl font-black truncate">Student</h1>
             <div class="flex justify-between items-end mt-2">
@@ -114,14 +128,13 @@
                         class="bg-slate-950 text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-800">
                     </tr>
                 </thead>
-                <tbody id="matrixBody" class="divide-y divide-slate-800/50 text-xs">
-                </tbody>
+                <tbody id="matrixBody" class="divide-y divide-slate-800/50 text-xs"></tbody>
             </table>
         </div>
     </div>
 
     <script>
-        const API = "[https://knmiet-attendance-core.onrender.com](https://knmiet-attendance-core.onrender.com)";
+        const API = "https://knmiet-attendance-core.onrender.com";
         const roll = localStorage.getItem('student_roll');
         const devID = localStorage.getItem('cse22_dev_id');
 
@@ -215,9 +228,7 @@
                     rowsHTML += row;
                 });
                 body.innerHTML = rowsHTML;
-            } catch (e) {
-                console.error("Failed to load matrix", e);
-            }
+            } catch (e) { console.error("Failed to load matrix", e); }
         }
 
         function startScanner() {

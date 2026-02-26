@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Director's Terminal | KNMIET</title>
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             background: #020617;
@@ -30,14 +30,23 @@
 </head>
 
 <body class="p-6" onload="wakeServer()">
+
     <div id="globalLoader"
         class="fixed inset-0 bg-[#020617] z-[9999] flex flex-col items-center justify-center transition-opacity duration-1000">
+        <div class="bg-white p-4 rounded-3xl mb-8 animate-pulse shadow-[0_0_30px_rgba(255,255,255,0.1)]">
+            <img src="knmiet-logo1494x375.webp" class="h-10 object-contain" alt="Logo"
+                onerror="this.src='knmiet-logo.webp'">
+        </div>
         <div class="w-12 h-12 border-4 border-slate-800 border-t-blue-500 rounded-full animate-spin mb-6"></div>
         <h2 class="text-lg font-black tracking-widest uppercase">Securing Director Access</h2>
     </div>
 
     <div id="loginGate"
         class="hidden max-w-md mx-auto mt-16 p-10 glass rounded-[2.5rem] text-center border-t-4 border-blue-600">
+        <div class="bg-white p-3 rounded-2xl inline-block shadow-lg mb-6">
+            <img src="knmiet-logo1494x375.webp" class="h-8 object-contain" alt="KNMIET Logo"
+                onerror="this.src='knmiet-logo.webp'">
+        </div>
         <h2 class="text-2xl font-bold text-blue-400 mb-6">Director's Terminal</h2>
         <input type="password" id="adminPass" placeholder="Enter Secure Key"
             class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl mb-4 outline-none text-center text-white">
@@ -69,21 +78,21 @@
                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Authorize Faculty</h3>
                 <div class="space-y-4">
                     <input type="text" id="tName" placeholder="Full Name"
-                        class="w-full bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white">
-                    <input type="text" id="tEmail" placeholder="Email Address"
-                        class="w-full bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white">
+                        class="w-full bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white outline-none">
+                    <input type="email" id="tEmail" placeholder="Email Address"
+                        class="w-full bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white outline-none">
 
                     <input type="text" id="tPin" placeholder="Assign 4-Digit PIN" maxlength="4"
                         class="w-full bg-slate-900 p-3 rounded-xl border border-emerald-500/50 text-sm text-emerald-400 font-bold font-mono tracking-[0.5em] text-center outline-none focus:border-emerald-500">
 
                     <div class="flex gap-2">
                         <select id="tRole"
-                            class="w-1/2 bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white">
+                            class="w-1/2 bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white outline-none">
                             <option>Faculty</option>
                             <option>HOD</option>
                         </select>
                         <select id="tDept"
-                            class="w-1/2 bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white">
+                            class="w-1/2 bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white outline-none">
                             <option>CSE</option>
                             <option>IT</option>
                             <option>AI</option>
@@ -93,27 +102,29 @@
                         </select>
                     </div>
                     <button onclick="addTeacher()"
-                        class="w-full bg-emerald-600 py-3.5 rounded-xl font-bold text-white mt-2">CREATE FACULTY
-                        PROFILE</button>
+                        class="w-full bg-emerald-600 hover:bg-emerald-500 transition-all py-3.5 rounded-xl font-bold text-white mt-2">CREATE
+                        FACULTY PROFILE</button>
                 </div>
             </div>
 
             <div class="glass p-6 rounded-3xl border-l-4 border-purple-500 h-full">
                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Curriculum Mapping</h3>
                 <select id="sTeacher"
-                    class="w-full bg-slate-900 border border-purple-500 p-3 rounded-xl text-sm mb-4 text-white font-bold"></select>
+                    class="w-full bg-slate-900 border border-purple-500 p-3 rounded-xl text-sm mb-4 text-white font-bold outline-none"></select>
 
                 <div id="subjectRows" class="space-y-4 overflow-y-auto pr-2 custom-scroll h-[280px]">
-                    <div class="subject-entry bg-slate-950 p-4 rounded-xl border border-slate-700 space-y-3">
+                    <div class="subject-entry bg-slate-950 p-4 rounded-xl border border-slate-700 space-y-3 relative">
+                        <button onclick="this.parentElement.remove()"
+                            class="absolute top-2 right-2 text-red-500 text-[10px] font-bold">✕</button>
                         <div class="flex gap-2">
                             <input type="text" placeholder="Subject Name"
-                                class="sName w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs text-white">
+                                class="sName w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs text-white outline-none">
                             <input type="text" placeholder="Sub Code"
-                                class="sCode w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs text-white uppercase font-mono">
+                                class="sCode w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs text-white uppercase font-mono outline-none">
                         </div>
                         <div class="flex gap-2">
                             <select
-                                class="sBranch w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-white font-bold">
+                                class="sBranch w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-white font-bold outline-none">
                                 <option>CSE</option>
                                 <option>IT</option>
                                 <option>AI</option>
@@ -122,14 +133,14 @@
                                 <option>CHE</option>
                             </select>
                             <select
-                                class="sYear w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-white font-bold">
+                                class="sYear w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-white font-bold outline-none">
                                 <option value="1">1st Yr</option>
                                 <option value="2">2nd Yr</option>
                                 <option value="3">3rd Yr</option>
                                 <option value="4">4th Yr</option>
                             </select>
                             <select
-                                class="sSection w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-emerald-400 font-bold">
+                                class="sSection w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-emerald-400 font-bold outline-none">
                                 <option>Sec A</option>
                                 <option>Sec B</option>
                                 <option>Sec C</option>
@@ -140,10 +151,10 @@
                 </div>
                 <div class="flex gap-3 pt-4 mt-4 border-t border-slate-800">
                     <button onclick="addSubjectRow()"
-                        class="w-1/3 bg-slate-800 py-3 rounded-xl font-black text-[10px] text-white uppercase">+ Add
-                        Row</button>
+                        class="w-1/3 bg-slate-800 py-3 rounded-xl font-black text-[10px] text-white uppercase transition-all hover:bg-slate-700">+
+                        Add Row</button>
                     <button onclick="assignMultipleSubjects()"
-                        class="w-2/3 bg-purple-600 py-3 rounded-xl font-black text-[10px] text-white uppercase tracking-widest">Link
+                        class="w-2/3 bg-purple-600 py-3 rounded-xl font-black text-[10px] text-white uppercase tracking-widest transition-all hover:bg-purple-500">Link
                         Subjects</button>
                 </div>
             </div>
@@ -152,7 +163,7 @@
 
     <script>
         let currentKey = "";
-        const API = "[https://knmiet-attendance-core.onrender.com](https://knmiet-attendance-core.onrender.com)";
+        const API = "https://knmiet-attendance-core.onrender.com";
 
         async function wakeServer() {
             currentKey = localStorage.getItem('admin_key');
@@ -203,7 +214,7 @@
         function addSubjectRow() {
             const row = document.createElement('div');
             row.className = "subject-entry bg-slate-950 p-4 rounded-xl border border-slate-700 space-y-3 relative";
-            row.innerHTML = `<button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 text-[10px] font-bold">✕</button><div class="flex gap-2"><input type="text" placeholder="Sub Name" class="sName w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs text-white"><input type="text" placeholder="Code" class="sCode w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs font-mono text-white"></div><div class="flex gap-2"><select class="sBranch w-1/3 bg-slate-900 p-2 text-[10px] text-white"><option>CSE</option><option>IT</option><option>AI</option><option>ECE</option><option>EE</option><option>CHE</option></select><select class="sYear w-1/3 bg-slate-900 p-2 text-[10px] text-white"><option value="1">1st Yr</option><option value="2">2nd Yr</option><option value="3">3rd Yr</option><option value="4">4th Yr</option></select><select class="sSection w-1/3 bg-slate-900 p-2 text-[10px] text-emerald-400 font-bold"><option>Sec A</option><option>Sec B</option><option>Sec C</option><option>Sec D</option></select></div>`;
+            row.innerHTML = `<button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 text-[10px] font-bold">✕</button><div class="flex gap-2"><input type="text" placeholder="Sub Name" class="sName w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs text-white outline-none"><input type="text" placeholder="Code" class="sCode w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs font-mono text-white outline-none"></div><div class="flex gap-2"><select class="sBranch w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-white font-bold outline-none"><option>CSE</option><option>IT</option><option>AI</option><option>ECE</option><option>EE</option><option>CHE</option></select><select class="sYear w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-white font-bold outline-none"><option value="1">1st Yr</option><option value="2">2nd Yr</option><option value="3">3rd Yr</option><option value="4">4th Yr</option></select><select class="sSection w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-emerald-400 font-bold outline-none"><option>Sec A</option><option>Sec B</option><option>Sec C</option><option>Sec D</option></select></div>`;
             document.getElementById('subjectRows').appendChild(row);
         }
 

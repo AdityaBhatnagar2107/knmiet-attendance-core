@@ -94,8 +94,7 @@
                     <div class="flex items-center gap-6 mb-6">
                         <div
                             class="w-16 h-16 rounded-full border-4 border-emerald-500 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.5)]">
-                            <span id="timerText" class="text-2xl font-black text-emerald-400 font-mono">5</span>
-                        </div>
+                            <span id="timerText" class="text-2xl font-black text-emerald-400 font-mono">5</span></div>
                         <div class="p-4 bg-white rounded-2xl shadow-xl flex items-center justify-center"
                             style="width: 212px; height: 212px;">
                             <div id="qrcode"></div>
@@ -107,14 +106,12 @@
                         <div
                             class="bg-slate-950 p-2 text-[10px] font-bold text-emerald-400 uppercase tracking-widest flex items-center gap-2 border-b border-slate-800">
                             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Network Scans
-                            Received
-                        </div>
+                            Received</div>
                         <div id="liveScans" class="p-2 space-y-1 overflow-y-auto custom-scroll flex-1 text-left">
                             <p class="text-[10px] text-slate-500 italic text-center mt-4">Waiting for students to
                                 scan...</p>
                         </div>
                     </div>
-
                     <button onclick="stopSession()"
                         class="mt-6 w-full bg-red-900/40 text-red-400 border border-red-900 py-4 rounded-2xl font-black text-xs hover:bg-red-600 hover:text-white transition-all uppercase tracking-widest">End
                         Session & Lock Server</button>
@@ -124,9 +121,15 @@
             <div class="glass p-8 rounded-[3rem] border-t-4 border-purple-500 flex flex-col h-full">
                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-6 tracking-widest">Section Roster & Assessment
                     Entry</h3>
-                <button onclick="loadRoster()"
-                    class="w-full bg-slate-800 text-white py-4 rounded-2xl font-black text-xs hover:bg-purple-600 transition-all uppercase tracking-widest mb-6 shadow-lg border border-slate-700">Fetch
-                    Class List</button>
+
+                <div class="flex gap-2 mb-6">
+                    <button onclick="loadRoster()"
+                        class="w-3/4 bg-slate-800 text-white py-4 rounded-2xl font-black text-xs hover:bg-purple-600 transition-all uppercase tracking-widest shadow-lg border border-slate-700">Fetch
+                        Class List</button>
+                    <button id="btnExport" onclick="exportExcel()"
+                        class="hidden w-1/4 bg-emerald-600 text-white py-4 rounded-2xl font-black text-xs hover:bg-emerald-500 transition-all uppercase tracking-widest shadow-lg">Excel</button>
+                </div>
+
                 <div id="rosterHeader"
                     class="hidden grid grid-cols-4 text-[9px] text-slate-500 font-bold uppercase mb-2 px-4">
                     <div class="col-span-1">Student</div>
@@ -145,6 +148,11 @@
         let qrInterval = null;
         let countdownInterval = null;
         let liveFeedInterval = null;
+
+        // Data stores for the Excel Export
+        let currentRosterData = [];
+        let currentFilenameData = "";
+        let currentTotalHeld = 0;
 
         async function loadTeachers() {
             const res = await fetch(`${API}/get-teachers`);
@@ -170,28 +178,18 @@
         async function loadSubjects() {
             const res = await fetch(`${API}/teacher-subjects?teacher_id=${currentTeacherId}`);
             const subjects = await res.json();
-            // INJECTING SECTION INTO THE DROPDOWN UI
             document.getElementById('subjectSelect').innerHTML = subjects.map(s => `<option value="${s.id}">${s.name} [${s.code}] — ${s.branch} YR ${s.year} (SEC ${s.section})</option>`).join('');
         }
 
         async function startSession() {
             const subId = document.getElementById('subjectSelect').value;
             if (!subId) return alert("Select a subject first");
-
             document.getElementById('qrControls').classList.add('hidden');
             document.getElementById('qrContainer').classList.remove('hidden');
-
             await refreshQR(subId, true);
-
             let timeLeft = 5;
             document.getElementById('timerText').innerText = timeLeft;
-
-            countdownInterval = setInterval(() => {
-                timeLeft--;
-                if (timeLeft <= 0) timeLeft = 5;
-                document.getElementById('timerText').innerText = timeLeft;
-            }, 1000);
-
+            countdownInterval = setInterval(() => { timeLeft--; if (timeLeft <= 0) timeLeft = 5; document.getElementById('timerText').innerText = timeLeft; }, 1000);
             qrInterval = setInterval(() => { refreshQR(subId, false); }, 5000);
             liveFeedInterval = setInterval(() => { fetchLiveFeed(subId); }, 2000);
         }
@@ -200,29 +198,19 @@
             try {
                 const res = await fetch(`${API}/generate-qr-string?subject_id=${subId}&is_new=${isNew}`);
                 const data = await res.json();
-
                 const subSelect = document.getElementById('subjectSelect');
-                let subText = subSelect.options[subSelect.selectedIndex].text;
-                subText = subText.replace(/—/g, "-").replace(/[^\x00-\x7F]/g, "");
-
+                let subText = subSelect.options[subSelect.selectedIndex].text.replace(/—/g, "-").replace(/[^\x00-\x7F]/g, "");
                 const payload = `${data.current_qr_string}|${subId}|${subText}`;
-
                 const qrElement = document.getElementById('qrcode');
                 qrElement.innerHTML = "";
-
-                new QRCode(qrElement, {
-                    text: payload, width: 180, height: 180,
-                    colorDark: "#000000", colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.L
-                });
-            } catch (e) { console.error("QR Refresh Failed", e); }
+                new QRCode(qrElement, { text: payload, width: 180, height: 180, colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.L });
+            } catch (e) { }
         }
 
         async function fetchLiveFeed(subId) {
             try {
                 const res = await fetch(`${API}/live-attendance?subject_id=${subId}`);
                 const students = await res.json();
-
                 if (students.length > 0) {
                     document.getElementById('liveScans').innerHTML = students.map(s => `
                         <div class="feed-item bg-slate-950/50 p-2 rounded border-l-2 border-emerald-500 flex justify-between items-center mb-1">
@@ -238,11 +226,7 @@
             clearInterval(qrInterval); clearInterval(countdownInterval); clearInterval(liveFeedInterval);
             document.getElementById('qrcode').innerHTML = '<p class="text-red-500 font-bold p-8 text-center mt-10">CLOSED</p>';
             document.getElementById('timerText').innerText = "-";
-            setTimeout(() => {
-                document.getElementById('qrContainer').classList.add('hidden');
-                document.getElementById('qrControls').classList.remove('hidden');
-                document.getElementById('liveScans').innerHTML = '<p class="text-[10px] text-slate-500 italic text-center mt-4">Waiting for students to scan...</p>';
-            }, 1500);
+            setTimeout(() => { document.getElementById('qrContainer').classList.add('hidden'); document.getElementById('qrControls').classList.remove('hidden'); document.getElementById('liveScans').innerHTML = '<p class="text-[10px] text-slate-500 italic text-center mt-4">Waiting for students to scan...</p>'; }, 1500);
         }
 
         async function loadRoster() {
@@ -250,16 +234,45 @@
             if (!subId) return;
             const res = await fetch(`${API}/subject-roster?subject_id=${subId}`);
             const data = await res.json();
-            document.getElementById('rosterHeader').classList.remove('hidden');
 
-            document.getElementById('rosterContainer').innerHTML = data.roster.length ? data.roster.map(s => `
+            // Save data for Excel Export
+            currentRosterData = data.roster;
+            currentFilenameData = data.filename_data;
+            currentTotalHeld = data.total_held;
+
+            document.getElementById('rosterHeader').classList.remove('hidden');
+            document.getElementById('btnExport').classList.remove('hidden');
+
+            document.getElementById('rosterContainer').innerHTML = data.roster.length ? data.roster.map(s => {
+                let perc = currentTotalHeld > 0 ? Math.round((s.attended / currentTotalHeld) * 100) : 0;
+                let color = perc >= 75 ? "text-emerald-500" : "text-red-500";
+                return `
                 <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 grid grid-cols-4 items-center gap-2">
-                    <div class="col-span-1 truncate"><p class="font-bold text-[11px] text-white">${s.name}</p><p class="text-[8px] text-slate-500 font-mono">${s.roll_no.slice(-5)}</p></div>
-                    <input type="number" class="mark-input bg-slate-950 border border-slate-700 text-center text-xs p-2 rounded-lg text-emerald-400 focus:border-purple-500 outline-none" value="${s.s1}" onchange="updateM('${s.roll_no}', ${subId}, this.value, 's1', this)">
-                    <input type="number" class="mark-input bg-slate-950 border border-slate-700 text-center text-xs p-2 rounded-lg text-emerald-400 focus:border-purple-500 outline-none" value="${s.s2}" onchange="updateM('${s.roll_no}', ${subId}, this.value, 's2', this)">
-                    <input type="number" class="mark-input bg-slate-950 border border-slate-700 text-center text-xs p-2 rounded-lg text-emerald-400 focus:border-purple-500 outline-none" value="${s.put}" onchange="updateM('${s.roll_no}', ${subId}, this.value, 'put', this)">
-                </div>
-            `).join('') : '<p class="text-xs text-slate-500 italic text-center py-4">No verified students in this section.</p>';
+                    <div class="col-span-1 truncate">
+                        <p class="font-bold text-[11px] text-white">${s.name}</p>
+                        <p class="text-[8px] text-slate-500 font-mono">${s.roll_no.slice(-5)} <span class="ml-1 ${color} font-bold">${perc}%</span></p>
+                    </div>
+                    <input type="number" class="mark-input bg-slate-950 border border-slate-700 text-center text-xs p-2 rounded-lg text-emerald-400 outline-none" value="${s.s1}" onchange="updateM('${s.roll_no}', ${subId}, this.value, 's1', this)">
+                    <input type="number" class="mark-input bg-slate-950 border border-slate-700 text-center text-xs p-2 rounded-lg text-emerald-400 outline-none" value="${s.s2}" onchange="updateM('${s.roll_no}', ${subId}, this.value, 's2', this)">
+                    <input type="number" class="mark-input bg-slate-950 border border-slate-700 text-center text-xs p-2 rounded-lg text-emerald-400 outline-none" value="${s.put}" onchange="updateM('${s.roll_no}', ${subId}, this.value, 'put', this)">
+                </div>`;
+            }).join('') : '<p class="text-xs text-slate-500 italic text-center py-4">No verified students in this section.</p>';
+        }
+
+        // THE EXCEL EXPORT SCRIPT
+        function exportExcel() {
+            if (currentRosterData.length === 0) return alert("No data to download.");
+            let csv = "Roll Number,Student Name,Attended,Total Lectures,Attendance %,Sessional 1,Sessional 2,PUT Marks\n";
+            currentRosterData.forEach(s => {
+                let perc = currentTotalHeld > 0 ? Math.round((s.attended / currentTotalHeld) * 100) : 0;
+                csv += `${s.roll_no},"${s.name}",${s.attended},${currentTotalHeld},${perc}%,${s.s1},${s.s2},${s.put}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `Class_List_${currentFilenameData}_${new Date().toLocaleDateString()}.csv`);
+            a.click();
         }
 
         async function updateM(roll, subId, val, type, el) {

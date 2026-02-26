@@ -36,18 +36,14 @@ async def reset_db(admin_key: str):
     models.Base.metadata.create_all(bind=engine)
     return {"message": "Database wiped! Ready for Sections and Expanded Branches."}
 
-# --- THE NEW ENTERPRISE BULK UPLOAD ROUTE ---
 @app.post("/upload-roster")
 async def upload_roster(admin_key: str, file: UploadFile = File(...), db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
-    
     content = await file.read()
     decoded = content.decode('utf-8')
     reader = csv.DictReader(io.StringIO(decoded))
-    
     count = 0
     for row in reader:
-        # Flexible header checking
         r_key = next((k for k in row.keys() if k and 'roll' in k.lower()), None)
         n_key = next((k for k in row.keys() if k and 'name' in k.lower()), None)
         b_key = next((k for k in row.keys() if k and 'branch' in k.lower()), None)
@@ -55,28 +51,23 @@ async def upload_roster(admin_key: str, file: UploadFile = File(...), db: Sessio
         s_key = next((k for k in row.keys() if k and 'sec' in k.lower()), None)
 
         if not r_key or not row[r_key]: continue
-        
         roll_no = str(row[r_key]).strip()
         existing = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
         
         if not existing:
             new_student = models.Student(
-                erp_id="PENDING", # They will fill this in when they actually download the app
-                roll_no=roll_no,
+                erp_id="PENDING", roll_no=roll_no,
                 name=str(row[n_key]).strip() if n_key else "Unknown",
                 branch=str(row[b_key]).strip().upper() if b_key else "CSE",
                 year=int(row[y_key]) if y_key else 1,
                 section=str(row[s_key]).strip().upper() if s_key else "A",
-                registered_device="UNREGISTERED", # Ready to be locked to a phone
-                status="Approved", # Instantly approved!
-                total_lectures=0
+                registered_device="UNREGISTERED", status="Approved", total_lectures=0
             )
             db.add(new_student)
             count += 1
     db.commit()
     return {"message": f"Successfully pre-approved {count} students!"}
 
-# --- STUDENT REGISTRATION (UPDATED FOR CSV LOGIC) ---
 @app.post("/register-student")
 async def register(erp_id: str, roll_no: str, name: str, branch: str, year: int, section: str, device_id: str, db: Session = Depends(database.get_db)):
     if len(roll_no) != 13: raise HTTPException(status_code=400, detail="Roll number must be 13 digits")
@@ -87,17 +78,9 @@ async def register(erp_id: str, roll_no: str, name: str, branch: str, year: int,
             existing.name = name; existing.branch = branch; existing.year = year; existing.section = section; existing.registered_device = device_id; existing.status = "Pending"
             db.commit(); return {"status": "success", "message": "Re-application submitted."}
             
-        # If they were uploaded via CSV OR reset by Director
         if existing.registered_device == "UNREGISTERED" or existing.registered_device == "PENDING_RESET":
-            existing.erp_id = erp_id
-            existing.name = name
-            existing.branch = branch
-            existing.year = year
-            existing.section = section
-            existing.registered_device = device_id
-            existing.status = "Approved"
-            db.commit()
-            return {"status": "success", "message": "Device Linked Successfully! Welcome."}
+            existing.erp_id = erp_id; existing.name = name; existing.branch = branch; existing.year = year; existing.section = section; existing.registered_device = device_id; existing.status = "Approved"
+            db.commit(); return {"status": "success", "message": "Device Linked Successfully! Welcome."}
             
         if existing.name.strip().lower() == name.strip().lower(): return {"status": "success", "message": "Welcome back!"}
         raise HTTPException(status_code=403, detail="Roll Number already registered to another device!")
@@ -161,7 +144,6 @@ async def mark_attendance(roll_no: str, qr_content: str, subject_id: int, device
     db.commit()
     return {"status": "Success"}
 
-# --- DIRECTOR ROUTES ---
 @app.get("/pending-students")
 async def get_pending(admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
@@ -203,7 +185,6 @@ async def all_analytics(admin_key: str, db: Session = Depends(database.get_db)):
     if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     return db.query(models.Student).all()
 
-# --- TEACHER ROUTES ---
 @app.get("/teacher-subjects")
 async def get_ts(teacher_id: int, db: Session = Depends(database.get_db)): return db.query(models.Subject).filter_by(teacher_id=teacher_id).all()
 
@@ -231,15 +212,26 @@ async def get_live(subject_id: int, db: Session = Depends(database.get_db)):
         if s: res.append({"name": s.name, "roll_no": s.roll_no, "branch": s.branch, "year": s.year, "section": s.section})
     return res
 
+# --- UPDATED: FACULTY ROSTER (NOW INCLUDES ATTENDANCE COUNT) ---
 @app.get("/subject-roster")
 async def get_roster(subject_id: int, db: Session = Depends(database.get_db)):
     sub = db.query(models.Subject).filter_by(id=subject_id).first()
+    if not sub: raise HTTPException(status_code=404)
     students = db.query(models.Student).filter_by(branch=sub.branch, year=sub.year, section=sub.section, status="Approved").all()
     roster = []
     for s in students:
         m = db.query(models.ExamMarks).filter_by(student_roll=s.roll_no, subject_id=sub.id).first()
-        roster.append({"name": s.name, "roll_no": s.roll_no, "s1": m.sessional_1 if m else 0, "s2": m.sessional_2 if m else 0, "put": m.put_marks if m else 0})
-    return {"roster": roster}
+        att = db.query(models.Attendance).filter_by(student_roll=s.roll_no, subject_id=sub.id).count()
+        roster.append({
+            "name": s.name, "roll_no": s.roll_no, 
+            "s1": m.sessional_1 if m else 0, "s2": m.sessional_2 if m else 0, "put": m.put_marks if m else 0,
+            "attended": att
+        })
+    return {
+        "roster": roster, 
+        "total_held": sub.total_lectures_held or 0,
+        "filename_data": f"{sub.branch}_Year{sub.year}_Sec{sub.section}_{sub.code}"
+    }
 
 @app.post("/update-marks")
 async def update_m(roll_no: str, subject_id: int, s1: float, s2: float, put: float, db: Session = Depends(database.get_db)):

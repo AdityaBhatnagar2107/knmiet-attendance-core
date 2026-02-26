@@ -113,18 +113,22 @@
         async function checkStatus() {
             if (!roll) { window.location.href = "register.html"; return; }
             try {
-                // Cache-Buster
                 const res = await fetch(`${API}/student-profile?roll_no=${roll}&t=${Date.now()}`);
                 const data = await res.json();
+
+                // THE GLITCH FIX: Auto-Logout if DB wiped or student deleted
+                if (!data.exists) {
+                    localStorage.removeItem('student_roll');
+                    window.location.href = "register.html";
+                    return;
+                }
 
                 const l = document.getElementById('globalLoader');
                 if (l) { l.style.opacity = '0'; setTimeout(() => l.remove(), 1000); }
 
-                // The New 3-State Logic
                 if (data.status === "Approved") {
                     document.getElementById('approvedView').classList.remove('hidden');
                     document.getElementById('sName').innerText = data.name;
-                    // Injecting Section into the Header
                     document.getElementById('sBranch').innerText = `${data.branch} - YR ${data.year} [SEC ${data.section}]`;
                     document.getElementById('totalLecs').innerText = data.total_lectures;
                     loadData();
@@ -143,7 +147,6 @@
         }
 
         function reApply() {
-            // Completely clears the browser memory so they aren't stuck anymore!
             localStorage.removeItem('student_roll');
             window.location.href = "register.html";
         }

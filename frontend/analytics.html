@@ -125,9 +125,15 @@
         const key = localStorage.getItem('admin_key');
         let allStudents = [];
 
+        // THE FIX: FETCHES USING SECURE HEADERS
         async function loadAnalytics() {
             try {
-                const res = await fetch(`${API}/all-students-analytics?admin_key=${key}`);
+                if (!key) { window.location.href = "admin.html"; return; }
+                const headers = { "X-Admin-Key": key };
+
+                const res = await fetch(`${API}/all-students-analytics`, { headers });
+                if (!res.ok) { window.location.href = "admin.html"; return; }
+
                 allStudents = await res.json();
 
                 const codes = new Set();
@@ -150,9 +156,7 @@
 
         function filterData() {
             const q = document.getElementById('searchBox').value.toLowerCase();
-            const fYear = document.getElementById('fYear').value;
-            const fSec = document.getElementById('fSection').value;
-            const fSub = document.getElementById('subjectFilter').value;
+            const fYear = document.getElementById('fYear').value; const fSec = document.getElementById('fSection').value; const fSub = document.getElementById('subjectFilter').value;
             const body = document.getElementById('analyticsBody');
 
             body.innerHTML = allStudents.filter(s => {
@@ -163,11 +167,9 @@
             }).map(s => {
                 let subs = fSub === 'all' ? s.erp.subjects : s.erp.subjects.filter(sub => sub.code === fSub);
                 if (subs.length === 0 && fSub !== 'all') return '';
-
                 let att = 0; let held = 0;
                 subs.forEach(b => { att += b.attended; held += b.total_held; });
                 const p = held > 0 ? Math.round((att / held) * 100) : 0;
-
                 return `
                 <tr class="hover:bg-blue-900/5 transition-colors">
                     <td class="p-6"><p class="font-bold text-sm text-white">${s.name}</p><p class="text-[9px] text-slate-500 font-mono">${s.roll_no}</p></td>
@@ -183,7 +185,7 @@
 
         async function resetDevice(roll) {
             if (!confirm(`WARNING: Are you sure you want to reset student ${roll}?`)) return;
-            await fetch(`${API}/reset-student-device?roll_no=${roll}&admin_key=${key}`, { method: 'POST' });
+            await fetch(`${API}/reset-student-device?roll_no=${roll}`, { method: 'POST', headers: { "X-Admin-Key": key } });
             alert("Device reset successful!");
         }
 
@@ -193,15 +195,8 @@
             document.getElementById('dossierRoll').innerText = `ROLL: ${s.roll_no} | ${s.branch} YEAR ${s.year} SEC ${s.section}`;
             document.getElementById('dossierContent').innerHTML = s.erp.subjects.map(sub => `
                 <div class="glass p-5 rounded-[2rem] border border-slate-800/80">
-                    <div class="flex justify-between items-start mb-4">
-                        <div><p class="text-[9px] text-blue-500 font-bold uppercase">${sub.code}</p><p class="font-bold text-sm leading-tight">${sub.subject_name}</p></div>
-                        <div class="text-right"><p class="font-black text-lg text-emerald-400">${sub.total_held > 0 ? Math.round((sub.attended / sub.total_held) * 100) : 0}%</p><p class="text-[8px] text-slate-500 font-bold">${sub.attended}/${sub.total_held} Attended</p></div>
-                    </div>
-                    <div class="grid grid-cols-3 gap-2">
-                        <div class="bg-slate-950 p-2 rounded-xl text-center border border-slate-800"><p class="text-[8px] text-slate-500 uppercase mb-1">S1</p><p class="font-black text-xs text-blue-400">${sub.s1}</p></div>
-                        <div class="bg-slate-950 p-2 rounded-xl text-center border border-slate-800"><p class="text-[8px] text-slate-500 uppercase mb-1">S2</p><p class="font-black text-xs text-blue-400">${sub.s2}</p></div>
-                        <div class="bg-slate-950 p-2 rounded-xl text-center border border-slate-800"><p class="text-[8px] text-slate-500 uppercase mb-1">PUT</p><p class="font-black text-xs text-blue-400">${sub.put}</p></div>
-                    </div>
+                    <div class="flex justify-between items-start mb-4"><div><p class="text-[9px] text-blue-500 font-bold uppercase">${sub.code}</p><p class="font-bold text-sm leading-tight">${sub.subject_name}</p></div><div class="text-right"><p class="font-black text-lg text-emerald-400">${sub.total_held > 0 ? Math.round((sub.attended / sub.total_held) * 100) : 0}%</p><p class="text-[8px] text-slate-500 font-bold">${sub.attended}/${sub.total_held} Attended</p></div></div>
+                    <div class="grid grid-cols-3 gap-2"><div class="bg-slate-950 p-2 rounded-xl text-center border border-slate-800"><p class="text-[8px] text-slate-500 uppercase mb-1">S1</p><p class="font-black text-xs text-blue-400">${sub.s1}</p></div><div class="bg-slate-950 p-2 rounded-xl text-center border border-slate-800"><p class="text-[8px] text-slate-500 uppercase mb-1">S2</p><p class="font-black text-xs text-blue-400">${sub.s2}</p></div><div class="bg-slate-950 p-2 rounded-xl text-center border border-slate-800"><p class="text-[8px] text-slate-500 uppercase mb-1">PUT</p><p class="font-black text-xs text-blue-400">${sub.put}</p></div></div>
                 </div>
             `).join('');
             document.getElementById('dossierModal').classList.remove('hidden');
@@ -210,13 +205,8 @@
 
         function exportToCSV() {
             let csv = "Name,Roll Number,Branch,Year,Section,Overall Attendance %\n";
-            allStudents.forEach(s => {
-                let att = 0; let held = 0;
-                s.erp.subjects.forEach(b => { att += b.attended; held += b.total_held; });
-                csv += `"${s.name}",${s.roll_no},${s.branch},${s.year},${s.section},${held > 0 ? Math.round((att / held) * 100) : 0}%\n`;
-            });
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const a = document.createElement('a'); a.setAttribute('href', URL.createObjectURL(blob));
+            allStudents.forEach(s => { let att = 0; let held = 0; s.erp.subjects.forEach(b => { att += b.attended; held += b.total_held; }); csv += `"${s.name}",${s.roll_no},${s.branch},${s.year},${s.section},${held > 0 ? Math.round((att / held) * 100) : 0}%\n`; });
+            const a = document.createElement('a'); a.setAttribute('href', URL.createObjectURL(new Blob([csv], { type: 'text/csv' })));
             a.setAttribute('download', `KNMIET_Master_Report_${new Date().toLocaleDateString()}.csv`); a.click();
         }
     </script>

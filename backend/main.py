@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Header
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,23 +24,23 @@ app.add_middleware(
 )
 
 ADMIN_SECRET = "KNM@2026!Admin" 
-
-# --- THE FIX: MULTI-CLASS SESSION TRACKER ---
 active_sessions = {}
 
 @app.get("/")
 async def root(): return RedirectResponse(url="/frontend/index.html")
 
+# --- SECURE HEADER VALIDATION APPLIED TO ALL ADMIN ROUTES ---
+
 @app.get("/reset-database-danger")
-async def reset_db(admin_key: str):
-    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+async def reset_db(x_admin_key: str = Header(...)):
+    if x_admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     models.Base.metadata.drop_all(bind=engine)
     models.Base.metadata.create_all(bind=engine)
     return {"message": "Database wiped! Ready for Sections and Expanded Branches."}
 
 @app.post("/upload-roster")
-async def upload_roster(admin_key: str, file: UploadFile = File(...), db: Session = Depends(database.get_db)):
-    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+async def upload_roster(file: UploadFile = File(...), x_admin_key: str = Header(...), db: Session = Depends(database.get_db)):
+    if x_admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     content = await file.read(); decoded = content.decode('utf-8'); reader = csv.DictReader(io.StringIO(decoded)); count = 0
     for row in reader:
         r_key = next((k for k in row.keys() if k and 'roll' in k.lower()), None)
@@ -108,10 +108,7 @@ async def student_history(roll_no: str, db: Session = Depends(database.get_db)):
 
 @app.post("/mark-attendance")
 async def mark_attendance(roll_no: str, qr_content: str, subject_id: int, device_id: str, db: Session = Depends(database.get_db)):
-    # THE FIX: Checking the specific active session dictionary
-    if subject_id not in active_sessions or active_sessions[subject_id] != qr_content:
-        raise HTTPException(status_code=400, detail="QR Expired or Class Not Active!")
-        
+    if subject_id not in active_sessions or active_sessions[subject_id] != qr_content: raise HTTPException(status_code=400, detail="QR Expired or Class Not Active!")
     student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
     if not student or student.status != "Approved": raise HTTPException(status_code=403, detail="Director Approval Required")
     if student.registered_device != device_id: raise HTTPException(status_code=403, detail="Device ID Security Mismatch")
@@ -130,75 +127,82 @@ async def request_leave(roll_no: str, date_req: str, reason: str, db: Session = 
     db.add(models.LeaveRequest(student_roll=roll_no, date_req=date_req, reason=reason)); db.commit(); return {"message": "Leave requested"}
 @app.get("/student-leaves")
 async def get_student_leaves(roll_no: str, db: Session = Depends(database.get_db)): return db.query(models.LeaveRequest).filter_by(student_roll=roll_no).order_by(models.LeaveRequest.id.desc()).all()
+
 @app.get("/pending-leaves")
-async def get_pending_leaves(admin_key: str, db: Session = Depends(database.get_db)):
-    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+async def get_pending_leaves(x_admin_key: str = Header(...), db: Session = Depends(database.get_db)):
+    if x_admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     leaves = db.query(models.LeaveRequest).filter_by(status="Pending").all(); res = []
     for l in leaves:
         s = db.query(models.Student).filter_by(roll_no=l.student_roll).first()
         if s: res.append({"id": l.id, "name": s.name, "roll_no": s.roll_no, "date_req": l.date_req, "reason": l.reason})
     return res
+
 @app.post("/update-leave-status")
-async def update_leave_status(leave_id: int, status: str, admin_key: str, db: Session = Depends(database.get_db)):
-    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+async def update_leave_status(leave_id: int, status: str, x_admin_key: str = Header(...), db: Session = Depends(database.get_db)):
+    if x_admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     l = db.query(models.LeaveRequest).filter_by(id=leave_id).first()
     if l: l.status = status; db.commit()
     return {"message": "Success"}
 
 @app.get("/pending-students")
-async def get_pending(admin_key: str, db: Session = Depends(database.get_db)):
-    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+async def get_pending(x_admin_key: str = Header(...), db: Session = Depends(database.get_db)):
+    if x_admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     return db.query(models.Student).filter(models.Student.status == "Pending").all()
+
 @app.post("/update-student-status")
-async def update_status(roll_no: str, status: str, admin_key: str, db: Session = Depends(database.get_db)):
-    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+async def update_status(roll_no: str, status: str, x_admin_key: str = Header(...), db: Session = Depends(database.get_db)):
+    if x_admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
     if student: student.status = status; db.commit(); db.refresh(student)
     return {"message": f"Student {status}"}
+
 @app.post("/reset-student-device")
-async def reset_device(roll_no: str, admin_key: str, db: Session = Depends(database.get_db)):
-    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+async def reset_device(roll_no: str, x_admin_key: str = Header(...), db: Session = Depends(database.get_db)):
+    if x_admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
     if student: student.registered_device = "PENDING_RESET"; db.commit(); return {"message": "Device reset successful"}
     raise HTTPException(status_code=404, detail="Student not found")
+
 @app.post("/assign-subject")
-async def assign_subject(name: str, code: str, branch: str, year: int, section: str, teacher_id: int, admin_key: str, db: Session = Depends(database.get_db)):
-    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+async def assign_subject(name: str, code: str, branch: str, year: int, section: str, teacher_id: int, x_admin_key: str = Header(...), db: Session = Depends(database.get_db)):
+    if x_admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     db.add(models.Subject(name=name, code=code, branch=branch, year=year, section=section, teacher_id=teacher_id, total_lectures_held=0)); db.commit()
     return {"message": "Subject Linked"}
+
 @app.post("/add-teacher")
-async def add_teacher(name: str, email: str, pin: str, role: str, department: str, admin_key: str, db: Session = Depends(database.get_db)):
-    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+async def add_teacher(name: str, email: str, pin: str, role: str, department: str, x_admin_key: str = Header(...), db: Session = Depends(database.get_db)):
+    if x_admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     db.add(models.Teacher(name=name, email=email, pin=pin, role=role, department=department)); db.commit()
     return {"message": "Teacher Added"}
+
 @app.get("/get-teachers")
 async def get_t(db: Session = Depends(database.get_db)): return db.query(models.Teacher).all()
+
 @app.get("/all-students-analytics")
-async def all_analytics(admin_key: str, db: Session = Depends(database.get_db)):
-    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+async def all_analytics(x_admin_key: str = Header(...), db: Session = Depends(database.get_db)):
+    if x_admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     return db.query(models.Student).all()
+
 @app.get("/teacher-subjects")
 async def get_ts(teacher_id: int, db: Session = Depends(database.get_db)): return db.query(models.Subject).filter_by(teacher_id=teacher_id).all()
+
 @app.get("/verify-teacher-pin")
 async def verify_pin(teacher_id: int, entered_pin: str, db: Session = Depends(database.get_db)):
     t = db.query(models.Teacher).filter(models.Teacher.id == teacher_id).first()
     if t and t.pin == entered_pin: return {"status": "success", "role": t.role}
     raise HTTPException(status_code=401, detail="Invalid PIN")
 
-# --- THE FIX: ISOLATED QR GENERATION ---
 @app.get("/generate-qr-string")
 async def generate_qr(subject_id: int, is_new: bool = False, db: Session = Depends(database.get_db)):
     if is_new:
         sub = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
         if sub: sub.total_lectures_held = (sub.total_lectures_held or 0) + 1; db.commit()
-    # Saves strictly to this subject_id
     active_sessions[subject_id] = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
     return {"current_qr_string": active_sessions[subject_id]}
 
-# --- NEW: END SESSION ROUTE ---
 @app.post("/stop-session")
 async def stop_session(subject_id: int):
-    active_sessions.pop(subject_id, None) # Instantly kills the QR code
+    active_sessions.pop(subject_id, None)
     return {"status": "stopped"}
 
 @app.get("/live-attendance")
@@ -209,6 +213,7 @@ async def get_live(subject_id: int, db: Session = Depends(database.get_db)):
         s = db.query(models.Student).filter(models.Student.roll_no == r.student_roll).first()
         if s: res.append({"name": s.name, "roll_no": s.roll_no, "branch": s.branch, "year": s.year, "section": s.section})
     return res
+
 @app.get("/subject-roster")
 async def get_roster(subject_id: int, db: Session = Depends(database.get_db)):
     sub = db.query(models.Subject).filter_by(id=subject_id).first()
@@ -220,6 +225,7 @@ async def get_roster(subject_id: int, db: Session = Depends(database.get_db)):
         att = db.query(models.Attendance).filter_by(student_roll=s.roll_no, subject_id=sub.id).count()
         roster.append({"name": s.name, "roll_no": s.roll_no, "s1": m.sessional_1 if m else 0, "s2": m.sessional_2 if m else 0, "put": m.put_marks if m else 0, "attended": att})
     return {"roster": roster, "total_held": sub.total_lectures_held or 0, "filename_data": f"{sub.branch}_Year{sub.year}_Sec{sub.section}_{sub.code}"}
+
 @app.post("/update-marks")
 async def update_m(roll_no: str, subject_id: int, s1: float, s2: float, put: float, db: Session = Depends(database.get_db)):
     m = db.query(models.ExamMarks).filter_by(student_roll=roll_no, subject_id=subject_id).first()
@@ -228,13 +234,15 @@ async def update_m(roll_no: str, subject_id: int, s1: float, s2: float, put: flo
     if s2 > 0: m.sessional_2 = s2; 
     if put > 0: m.put_marks = put; 
     db.commit(); return {"message": "Saved"}
+
 @app.get("/get-timetable")
 async def get_tt(group_id: str, db: Session = Depends(database.get_db)):
     tt = db.query(models.Timetable).filter_by(branch_year=group_id).first()
     return {"exists": True, "grid_data": tt.grid_data} if tt else {"exists": False}
+
 @app.post("/save-timetable")
-async def save_tt(group_id: str, grid_data: str, admin_key: str, db: Session = Depends(database.get_db)):
-    if admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
+async def save_tt(group_id: str, grid_data: str, x_admin_key: str = Header(...), db: Session = Depends(database.get_db)):
+    if x_admin_key != ADMIN_SECRET: raise HTTPException(status_code=401)
     tt = db.query(models.Timetable).filter_by(branch_year=group_id).first()
     if not tt: db.add(models.Timetable(branch_year=group_id, grid_data=grid_data))
     else: tt.grid_data = grid_data

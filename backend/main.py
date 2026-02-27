@@ -3,7 +3,8 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, Column, Integer, String, Boolean, Float, DateTime
+# IMPORTED or_ for the Common Subjects Logic
+from sqlalchemy import func, and_, or_, Column, Integer, String, Boolean, Float, DateTime
 from datetime import datetime, timedelta
 import random, string, csv, io
 
@@ -28,8 +29,6 @@ active_sessions = {}
 
 @app.get("/")
 async def root(): return RedirectResponse(url="/frontend/index.html")
-
-# --- SECURE HEADER VALIDATION APPLIED TO ALL ADMIN ROUTES ---
 
 @app.get("/reset-database-danger")
 async def reset_db(x_admin_key: str = Header(...)):
@@ -82,7 +81,12 @@ async def get_profile(roll_no: str, db: Session = Depends(database.get_db)):
 async def student_erp(roll_no: str, db: Session = Depends(database.get_db)):
     s = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
     if not s: raise HTTPException(status_code=404)
-    subs = db.query(models.Subject).filter(models.Subject.branch == s.branch, models.Subject.year == s.year, models.Subject.section == s.section).all()
+    # THE FIX: Pulls subjects that match their branch OR are set to "ALL"
+    subs = db.query(models.Subject).filter(
+        or_(models.Subject.branch == s.branch, models.Subject.branch == "ALL"), 
+        models.Subject.year == s.year, 
+        models.Subject.section == s.section
+    ).all()
     data = []
     for sub in subs:
         att = db.query(models.Attendance).filter(models.Attendance.student_roll == roll_no, models.Attendance.subject_id == sub.id).count()
@@ -94,7 +98,14 @@ async def student_erp(roll_no: str, db: Session = Depends(database.get_db)):
 async def student_history(roll_no: str, db: Session = Depends(database.get_db)):
     student = db.query(models.Student).filter(models.Student.roll_no == roll_no).first()
     if not student: raise HTTPException(status_code=404)
-    subjects = db.query(models.Subject).filter(models.Subject.branch == student.branch, models.Subject.year == student.year, models.Subject.section == student.section).all()
+    
+    # THE FIX: Pulls subjects that match their branch OR are set to "ALL"
+    subjects = db.query(models.Subject).filter(
+        or_(models.Subject.branch == student.branch, models.Subject.branch == "ALL"), 
+        models.Subject.year == student.year, 
+        models.Subject.section == student.section
+    ).all()
+    
     attendance_records = db.query(models.Attendance).filter(models.Attendance.student_roll == roll_no).order_by(models.Attendance.timestamp.desc()).all()
     history_by_date = {}
     for record in attendance_records:
@@ -114,7 +125,11 @@ async def mark_attendance(roll_no: str, qr_content: str, subject_id: int, device
     if student.registered_device != device_id: raise HTTPException(status_code=403, detail="Device ID Security Mismatch")
     subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
     if not subject: raise HTTPException(status_code=404, detail="Subject not found")
-    if student.branch != subject.branch or student.year != subject.year or student.section != subject.section: raise HTTPException(status_code=403, detail=f"Access Denied! You belong to {student.branch} YR {student.year} Sec {student.section}")
+    
+    # THE FIX: Security scanner now allows "ALL" branch subjects to pass
+    if (student.branch != subject.branch and subject.branch != "ALL") or student.year != subject.year or student.section != subject.section: 
+        raise HTTPException(status_code=403, detail=f"Access Denied! You belong to {student.branch} YR {student.year} Sec {student.section}")
+        
     time_limit = datetime.utcnow() - timedelta(minutes=40)
     duplicate = db.query(models.Attendance).filter(models.Attendance.student_roll == roll_no, models.Attendance.subject_id == subject_id, models.Attendance.timestamp >= time_limit).first()
     if duplicate: raise HTTPException(status_code=400, detail="Duplicate: Wait 40m to scan this subject again")
@@ -218,7 +233,13 @@ async def get_live(subject_id: int, db: Session = Depends(database.get_db)):
 async def get_roster(subject_id: int, db: Session = Depends(database.get_db)):
     sub = db.query(models.Subject).filter_by(id=subject_id).first()
     if not sub: raise HTTPException(status_code=404)
-    students = db.query(models.Student).filter_by(branch=sub.branch, year=sub.year, section=sub.section, status="Approved").all()
+    
+    # THE FIX: If branch is ALL, fetch students from EVERY branch for that year/section
+    if sub.branch == "ALL":
+        students = db.query(models.Student).filter_by(year=sub.year, section=sub.section, status="Approved").all()
+    else:
+        students = db.query(models.Student).filter_by(branch=sub.branch, year=sub.year, section=sub.section, status="Approved").all()
+        
     roster = []
     for s in students:
         m = db.query(models.ExamMarks).filter_by(student_roll=s.roll_no, subject_id=sub.id).first()

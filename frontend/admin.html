@@ -132,7 +132,7 @@
                     <div class="subject-entry bg-slate-950 p-4 rounded-xl border border-slate-700 space-y-3 relative">
                         <button onclick="this.parentElement.remove()"
                             class="absolute top-2 right-2 text-red-500 text-[10px] font-bold">✕</button>
-                        <div class="flex gap-2"><input type="text" placeholder="Sub Name"
+                        <div class="flex gap-2"><input type="text" placeholder="Subject Name"
                                 class="sName w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs text-white outline-none"><input
                                 type="text" placeholder="Code"
                                 class="sCode w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs text-white uppercase font-mono outline-none">
@@ -140,6 +140,7 @@
                         <div class="flex gap-2">
                             <select
                                 class="sBranch w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-white font-bold outline-none">
+                                <option value="ALL">ALL (Common)</option>
                                 <option>CSE</option>
                                 <option>IT</option>
                                 <option>AI</option>
@@ -217,7 +218,6 @@
         let currentKey = "";
         const API = "https://knmiet-attendance-core.onrender.com";
 
-        // THE FIX: ALL REQUESTS USE HEADERS NOW
         function getHeaders() { return { "X-Admin-Key": currentKey }; }
 
         async function wakeServer() {
@@ -240,10 +240,8 @@
 
         async function loadData() {
             try {
-                // NO MORE PASSWORD IN URL
                 const sRes = await fetch(`${API}/pending-students`, { headers: getHeaders() });
                 if (!sRes.ok) throw new Error("Unauthorized");
-
                 const tRes = await fetch(`${API}/get-teachers`);
                 const lRes = await fetch(`${API}/pending-leaves`, { headers: getHeaders() });
 
@@ -273,16 +271,10 @@
                     </div>`).join('') : '<p class="text-[10px] text-slate-500 italic text-center py-4 uppercase tracking-widest font-bold">No pending leaves.</p>';
 
                 document.getElementById('sTeacher').innerHTML = teachers.map(t => `<option value="${t.id}">${t.name} (${t.role})</option>`).join('');
-            } catch (e) {
-                alert("Unauthorized Access. Bad Password.");
-                logoutAdmin();
-            }
+            } catch (e) { alert("Unauthorized Access. Bad Password."); logoutAdmin(); }
         }
 
-        async function updateLeave(id, status) {
-            await fetch(`${API}/update-leave-status?leave_id=${id}&status=${status}`, { method: 'POST', headers: getHeaders() });
-            loadData();
-        }
+        async function updateLeave(id, status) { await fetch(`${API}/update-leave-status?leave_id=${id}&status=${status}`, { method: 'POST', headers: getHeaders() }); loadData(); }
 
         async function uploadRoster() {
             const fileInput = document.getElementById('csvFile'); const msg = document.getElementById('uploadMsg');
@@ -290,7 +282,6 @@
             const formData = new FormData(); formData.append("file", fileInput.files[0]);
             msg.innerText = "UPLOADING..."; msg.className = "text-[9px] font-bold text-center mt-3 h-3 text-blue-400 animate-pulse uppercase tracking-widest";
             try {
-                // ADDED HEADERS TO UPLOAD
                 const res = await fetch(`${API}/upload-roster`, { method: 'POST', body: formData, headers: getHeaders() });
                 const data = await res.json();
                 if (res.ok) { msg.innerText = data.message.toUpperCase(); msg.className = "text-[9px] font-bold text-center mt-3 h-3 text-emerald-400 uppercase tracking-widest"; fileInput.value = ""; loadData(); }
@@ -298,14 +289,12 @@
             } catch (e) { msg.innerText = "NETWORK ERROR."; msg.className = "text-[9px] font-bold text-center mt-3 h-3 text-red-500 uppercase tracking-widest"; }
         }
 
-        async function updateStatus(roll, status) {
-            await fetch(`${API}/update-student-status?roll_no=${roll}&status=${status}`, { method: 'POST', headers: getHeaders() });
-            loadData();
-        }
+        async function updateStatus(roll, status) { await fetch(`${API}/update-student-status?roll_no=${roll}&status=${status}`, { method: 'POST', headers: getHeaders() }); loadData(); }
 
         function addSubjectRow() {
             const row = document.createElement('div'); row.className = "subject-entry bg-slate-950 p-4 rounded-xl border border-slate-700 space-y-3 relative";
-            row.innerHTML = `<button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 text-[10px] font-bold">✕</button><div class="flex gap-2"><input type="text" placeholder="Sub Name" class="sName w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs text-white outline-none"><input type="text" placeholder="Code" class="sCode w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs font-mono text-white outline-none"></div><div class="flex gap-2"><select class="sBranch w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-white font-bold outline-none"><option>CSE</option><option>IT</option><option>AI</option><option>ECE</option><option>EE</option><option>CHE</option></select><select class="sYear w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-white font-bold outline-none"><option value="1">1st Yr</option><option value="2">2nd Yr</option><option value="3">3rd Yr</option><option value="4">4th Yr</option></select><select class="sSection w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-emerald-400 font-bold outline-none"><option>Sec A</option><option>Sec B</option><option>Sec C</option><option>Sec D</option></select></div>`;
+            // THE FIX: Adding 'ALL (Common)' to the dynamic row button as well!
+            row.innerHTML = `<button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 text-[10px] font-bold">✕</button><div class="flex gap-2"><input type="text" placeholder="Sub Name" class="sName w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs text-white outline-none"><input type="text" placeholder="Code" class="sCode w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs font-mono text-white outline-none"></div><div class="flex gap-2"><select class="sBranch w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-white font-bold outline-none"><option value="ALL">ALL (Common)</option><option>CSE</option><option>IT</option><option>AI</option><option>ECE</option><option>EE</option><option>CHE</option></select><select class="sYear w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-white font-bold outline-none"><option value="1">1st Yr</option><option value="2">2nd Yr</option><option value="3">3rd Yr</option><option value="4">4th Yr</option></select><select class="sSection w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-emerald-400 font-bold outline-none"><option>Sec A</option><option>Sec B</option><option>Sec C</option><option>Sec D</option></select></div>`;
             document.getElementById('subjectRows').appendChild(row);
         }
 

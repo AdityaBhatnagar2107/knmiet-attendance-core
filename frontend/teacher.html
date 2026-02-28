@@ -5,6 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Faculty Command Center | KNMIET</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#070b14">
+    <link rel="apple-touch-icon" href="icon.png">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('App Engine Active'))
+                    .catch(err => console.log('Engine Failed', err));
+            });
+        }
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -100,8 +115,6 @@
             .tab-section {
                 display: flex !important;
             }
-
-            /* Force show all on desktop */
         }
 
         /* Mobile Bottom Nav */
@@ -388,22 +401,18 @@
         let currentTeacherId = null; let qrInterval = null; let countdownInterval = null; let liveWebSocket = null;
         let currentRosterData = []; let currentFilenameData = ""; let currentTotalHeld = 0;
 
-        // Mobile Tab Switching Logic
         function switchMobTab(tabId) {
-            if (window.innerWidth >= 1024) return; // Ignore if desktop
+            if (window.innerWidth >= 1024) return;
             ['qr', 'roster', 'timetable'].forEach(t => {
                 document.getElementById('tab-' + t).classList.remove('mobile-active');
                 document.getElementById('nav-tab-' + t).classList.remove('active');
             });
             document.getElementById('tab-' + tabId).classList.add('mobile-active');
             document.getElementById('nav-tab-' + tabId).classList.add('active');
-
-            // If opening timetable on mobile, run the load function
             if (tabId === 'timetable') viewTimetable();
         }
-        function closeTimetableMob() { switchMobTab('roster'); } // fallback
+        function closeTimetableMob() { switchMobTab('roster'); }
 
-        // Window resize handler to fix UI glitches if rotating device
         window.addEventListener('resize', () => { if (window.innerWidth >= 1024) { document.getElementById('bottomNav').style.display = 'none'; } else if (currentTeacherId) { document.getElementById('bottomNav').style.display = 'flex'; } });
 
         async function loadTeachers() { const res = await fetch(`${API}/get-teachers`); const teachers = await res.json(); document.getElementById('teacherSelect').innerHTML = teachers.map(t => `<option value="${t.id}">${t.name} — ${t.role}</option>`).join(''); }
@@ -428,14 +437,12 @@
             document.getElementById('subjectSelect').innerHTML = `<option value="" disabled selected>-- Select a Class to Manage --</option>` + subjects.map(s => `<option value="${s.id}" data-branch="${s.branch}" data-year="${s.year}" data-sec="${s.section}">${s.name} [${s.code}] — ${s.branch} YR ${s.year} (SEC ${s.section})</option>`).join('');
         }
 
-        // Auto-loads roster when dropdown changes
         function autoLoadData() { loadRoster(); if (window.innerWidth >= 1024 && !document.getElementById('desktopTimetableModal').classList.contains('hidden')) viewTimetable(); }
 
         async function viewTimetable() {
             const sel = document.getElementById('subjectSelect'); if (!sel.value) return alert("Select a class first!");
             const opt = sel.options[sel.selectedIndex]; const groupId = `${opt.getAttribute('data-branch')}-${opt.getAttribute('data-year')}-${opt.getAttribute('data-sec')}`;
 
-            // Determine which modal to populate based on screen size
             const isDesktop = window.innerWidth >= 1024;
             if (isDesktop) document.getElementById('desktopTimetableModal').classList.replace('hidden', 'flex');
 
@@ -481,7 +488,16 @@
         }
 
         async function refreshQR(subId, isNew) { try { const res = await fetch(`${API}/generate-qr-string?subject_id=${subId}&is_new=${isNew}`); const data = await res.json(); const qrElement = document.getElementById('qrcode'); qrElement.innerHTML = ""; new QRCode(qrElement, { text: `${data.current_qr_string}|${subId}|Class`, width: 180, height: 180, colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.L }); } catch (e) { } }
-        async function stopSession() { clearInterval(qrInterval); clearInterval(countdownInterval); if (liveWebSocket) liveWebSocket.close(); const subId = document.getElementById('subjectSelect').value; try { await fetch(`${API}/stop-session?subject_id=${subId}`, { method: 'POST' }); } catch (e) { } document.getElementById('qrcode').innerHTML = '<p class="text-red-500 font-bold p-8 text-center mt-10">CLOSED</p>'; setTimeout(() => { document.getElementById('qrContainer').classList.add('hidden'); document.getElementById('qrControls').classList.remove('hidden'); }, 1500); }
+
+        async function stopSession() {
+            clearInterval(qrInterval); clearInterval(countdownInterval);
+            if (liveWebSocket) liveWebSocket.close();
+            const subId = document.getElementById('subjectSelect').value;
+            try { await fetch(`${API}/stop-session?subject_id=${subId}`, { method: 'POST' }); } catch (e) { }
+            document.getElementById('qrcode').innerHTML = '<p class="text-red-500 font-bold p-8 text-center mt-10">CLOSED</p>';
+            document.getElementById('timerText').innerText = "-";
+            setTimeout(() => { document.getElementById('qrContainer').classList.add('hidden'); document.getElementById('qrControls').classList.remove('hidden'); }, 1500);
+        }
 
         async function loadRoster() {
             const subId = document.getElementById('subjectSelect').value; if (!subId) return;

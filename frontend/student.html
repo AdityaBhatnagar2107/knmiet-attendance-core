@@ -42,7 +42,13 @@
     </style>
 </head>
 
-<body class="p-4 flex flex-col items-center pb-20" onload="checkStatus()">
+<body class="p-4 flex flex-col items-center pb-20 relative min-h-screen" onload="checkStatus()">
+    <div
+        style="position:fixed; top:-20%; left:-10%; width:60%; height:60%; background:radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 70%); filter:blur(60px); z-index:-1;">
+    </div>
+    <div
+        style="position:fixed; bottom:-20%; right:-10%; width:60%; height:60%; background:radial-gradient(circle, rgba(147,51,234,0.1) 0%, transparent 70%); filter:blur(60px); z-index:-1;">
+    </div>
 
     <div id="globalLoader"
         class="fixed inset-0 bg-[#020617] z-[9999] flex flex-col items-center justify-center transition-opacity duration-1000">
@@ -56,59 +62,53 @@
 
     <div id="pendingView"
         class="hidden mt-10 w-full max-w-sm glass p-8 rounded-[3rem] text-center border-t-4 border-yellow-500 shadow-2xl">
-        <div
-            class="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-yellow-500/20">
-            <span class="text-2xl">⏳</span></div>
-        <h2 class="text-xl font-black text-yellow-500">Under Review</h2>
-        <button onclick="location.reload()"
-            class="mt-8 w-full bg-yellow-600 hover:bg-yellow-500 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-white transition-all">Refresh
+        <h2 class="text-xl font-black text-yellow-500">Under Review</h2><button onclick="location.reload()"
+            class="mt-8 w-full bg-yellow-600 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-white">Refresh
             Status</button>
     </div>
-
     <div id="rejectedView"
         class="hidden mt-10 w-full max-w-sm glass p-8 rounded-[3rem] text-center border-t-4 border-red-500 shadow-2xl">
-        <div
-            class="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/20">
-            <span class="text-2xl">❌</span></div>
-        <h2 class="text-xl font-black text-red-500">Request Denied</h2>
-        <button onclick="reApply()"
-            class="mt-8 w-full bg-slate-800 border border-red-500/50 hover:bg-red-600 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-white transition-all">Clear
-            Data & Re-Apply</button>
+        <h2 class="text-xl font-black text-red-500">Request Denied</h2><button onclick="reApply()"
+            class="mt-8 w-full bg-slate-800 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest text-white">Re-Apply</button>
     </div>
 
     <div id="approvedView" class="hidden w-full max-w-md space-y-6 animate-in fade-in duration-500">
         <div class="text-center mt-2 mb-4">
-            <div class="bg-white p-3 rounded-2xl inline-block shadow-lg"><img src="knmiet-logo1494x375.webp"
-                    class="h-8 object-contain" alt="Logo" onerror="this.src='knmiet-logo.webp'"></div>
+            <div class="bg-white p-3 rounded-2xl inline-block shadow-[0_0_20px_rgba(255,255,255,0.1)]"><img
+                    src="knmiet-logo1494x375.webp" class="h-8 object-contain" alt="Logo"
+                    onerror="this.src='knmiet-logo.webp'"></div>
         </div>
 
-        <div class="glass p-6 rounded-[2rem] border-l-4 border-blue-500 shadow-xl">
-            <h1 id="sName" class="text-xl font-black truncate">Student</h1>
+        <div
+            class="glass p-6 rounded-[2rem] border-l-4 border-blue-500 shadow-xl bg-gradient-to-br from-slate-900/80 to-slate-950/80 backdrop-blur-xl">
+            <h1 id="sName" class="text-xl font-black truncate text-white drop-shadow-md">Student</h1>
             <div class="flex justify-between items-end mt-2">
                 <p id="sBranch" class="text-blue-400 text-[10px] font-bold uppercase tracking-widest"></p>
                 <div class="text-right">
                     <p class="text-[8px] text-slate-500 uppercase font-bold">Scans / Leaves</p>
-                    <p id="totalLecs" class="text-2xl font-black text-emerald-400 leading-none mt-1">0 / 0</p>
+                    <p id="totalLecs"
+                        class="text-2xl font-black text-emerald-400 leading-none mt-1 drop-shadow-[0_0_10px_rgba(52,211,153,0.5)]">
+                        0 / 0</p>
                 </div>
             </div>
         </div>
 
         <div class="glass p-4 rounded-[2rem] overflow-hidden border border-slate-800 shadow-lg">
-            <div id="reader" class="rounded-2xl"></div>
+            <div id="reader" class="rounded-2xl overflow-hidden"></div>
             <p id="scanMsg"
                 class="text-center text-[9px] font-bold uppercase tracking-widest text-slate-500 mt-4 italic">Align QR
                 to Mark Attendance</p>
         </div>
 
-        <div class="flex gap-1 bg-slate-900 p-1.5 rounded-xl border border-slate-800">
+        <div class="flex gap-1 bg-slate-900/80 p-1.5 rounded-xl border border-slate-800 backdrop-blur-md">
             <button id="btnOverview" onclick="switchTab('overview')"
-                class="w-1/4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest bg-blue-600 text-white transition-all">Score</button>
+                class="w-1/4 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest bg-blue-600 text-white transition-all shadow-md">Score</button>
             <button id="btnMatrix" onclick="switchTab('matrix')"
-                class="w-1/4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all">Matrix</button>
+                class="w-1/4 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all">Matrix</button>
             <button id="btnSchedule" onclick="switchTab('schedule')"
-                class="w-1/4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all">Timetable</button>
+                class="w-1/4 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all">Timetable</button>
             <button id="btnLeave" onclick="switchTab('leave')"
-                class="w-1/4 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all text-purple-400">Leave</button>
+                class="w-1/4 py-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-purple-400 hover:text-purple-300 transition-all">Leave</button>
         </div>
 
         <div id="overviewTab" class="space-y-3 pb-10">
@@ -120,30 +120,50 @@
             <table class="w-full text-center border-collapse whitespace-nowrap">
                 <thead>
                     <tr id="matrixHeader"
-                        class="bg-slate-950 text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-800">
+                        class="bg-slate-950/80 text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-800">
                     </tr>
                 </thead>
                 <tbody id="matrixBody" class="divide-y divide-slate-800/50 text-xs"></tbody>
             </table>
         </div>
 
-        <div id="scheduleTab" class="hidden glass p-6 rounded-[2rem] border border-slate-800 shadow-xl">
-            <h3
-                class="text-[10px] font-bold text-cyan-500 uppercase mb-4 tracking-widest border-b border-slate-800 pb-2">
-                Official Class Schedule</h3>
-            <pre id="ttDisplay" class="text-[10px] text-white whitespace-pre-wrap font-mono leading-relaxed"></pre>
+        <div id="scheduleTab" class="hidden space-y-4 pb-10">
+            <div id="noticeBanner"
+                class="hidden bg-red-950/30 border border-red-500/50 p-4 rounded-2xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+                <p class="text-[9px] font-black text-red-400 uppercase tracking-widest flex items-center gap-2 mb-1">
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span> Proxy / Notice</p>
+                <p id="noticeText" class="text-xs text-red-200 italic leading-relaxed"></p>
+            </div>
+            <div class="glass p-5 rounded-[2rem] border border-slate-800 shadow-xl overflow-x-auto custom-scroll">
+                <h3
+                    class="text-[10px] font-bold text-cyan-400 uppercase mb-4 tracking-widest border-b border-slate-800 pb-2">
+                    Master Schedule</h3>
+                <table class="w-full text-center text-[10px]">
+                    <thead class="text-slate-500 uppercase tracking-widest">
+                        <tr>
+                            <th class="p-2 pb-4">Day</th>
+                            <th class="p-2 pb-4">Slot 1</th>
+                            <th class="p-2 pb-4">Slot 2</th>
+                            <th class="p-2 pb-4">Slot 3</th>
+                            <th class="p-2 pb-4">Slot 4</th>
+                            <th class="p-2 pb-4">Slot 5</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ttGridDisplay" class="divide-y divide-slate-800/50 text-slate-300"></tbody>
+                </table>
+            </div>
         </div>
 
         <div id="leaveTab" class="hidden space-y-4 pb-10">
             <div class="glass p-6 rounded-[2rem] border border-slate-800 shadow-xl">
                 <h3
                     class="text-[10px] font-bold text-purple-400 uppercase mb-4 tracking-widest border-b border-slate-800 pb-2">
-                    Request Official Leave</h3>
-                <input type="date" id="leaveDate"
-                    class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-sm outline-none text-white mb-3 focus:border-purple-500 text-slate-400">
-                <textarea id="leaveReason" placeholder="Reason (e.g., Hackathon, Medical Issue...)"
-                    class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-sm outline-none text-white h-24 mb-3 focus:border-purple-500"></textarea>
-                <button onclick="submitLeave()"
+                    Request Official Leave</h3><input type="date" id="leaveDate"
+                    class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-sm outline-none text-slate-400 mb-3 focus:border-purple-500"><textarea
+                    id="leaveReason" placeholder="Reason (e.g., Hackathon, Medical Issue...)"
+                    class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl text-sm outline-none text-white h-24 mb-3 focus:border-purple-500"></textarea><button
+                    onclick="submitLeave()"
                     class="w-full bg-purple-600 hover:bg-purple-500 py-4 rounded-xl font-black text-[10px] text-white uppercase tracking-widest transition-all shadow-lg shadow-purple-900/50">Submit
                     Request</button>
             </div>
@@ -157,132 +177,38 @@
     </div>
 
     <script>
-        const API = "https://knmiet-attendance-core.onrender.com";
-        const roll = localStorage.getItem('student_roll');
-        const devID = localStorage.getItem('cse22_dev_id');
-
-        async function checkStatus() {
-            if (!roll) { window.location.href = "register.html"; return; }
-            try {
-                const res = await fetch(`${API}/student-profile?roll_no=${roll}&t=${Date.now()}`);
-                const data = await res.json();
-                if (!data.exists) { localStorage.removeItem('student_roll'); window.location.href = "register.html"; return; }
-                const l = document.getElementById('globalLoader'); if (l) { l.style.opacity = '0'; setTimeout(() => l.remove(), 1000); }
-
-                if (data.status === "Approved") {
-                    document.getElementById('approvedView').classList.remove('hidden');
-                    document.getElementById('sName').innerText = data.name;
-                    document.getElementById('sBranch').innerText = `${data.branch} - YR ${data.year} [SEC ${data.section}]`;
-                    document.getElementById('totalLecs').innerText = `${data.total_lectures} / ${data.official_leaves || 0}`;
-                    loadData(); loadMatrix(); loadLeaves();
-                    loadTimetable(data.branch, data.year, data.section);
-                    startScanner();
-                } else if (data.status === "Rejected") { document.getElementById('rejectedView').classList.remove('hidden'); }
-                else { document.getElementById('pendingView').classList.remove('hidden'); }
-            } catch (e) { document.getElementById('loaderText').innerText = "OFFLINE. RETRYING..."; setTimeout(() => location.reload(), 3000); }
-        }
-
-        function switchTab(tab) {
-            ['overview', 'matrix', 'schedule', 'leave'].forEach(t => {
-                document.getElementById(t + 'Tab').classList.add('hidden');
-                document.getElementById('btn' + t.charAt(0).toUpperCase() + t.slice(1)).classList.replace('text-white', 'text-slate-500');
-                document.getElementById('btn' + t.charAt(0).toUpperCase() + t.slice(1)).classList.remove('bg-blue-600');
-            });
-            document.getElementById(tab + 'Tab').classList.remove('hidden');
-            document.getElementById('btn' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.replace('text-slate-500', 'text-white');
-            document.getElementById('btn' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('bg-blue-600');
-        }
-
-        function reApply() { localStorage.removeItem('student_roll'); window.location.href = "register.html"; }
-
-        async function loadData() {
-            const res = await fetch(`${API}/student-erp-data?roll_no=${roll}`);
-            const erp = await res.json();
-            document.getElementById('subjectList').innerHTML = erp.subjects.map(s => {
-                let p = s.total_held > 0 ? Math.round((s.attended / s.total_held) * 100) : 0;
-                return `
-                <div class="glass p-4 rounded-2xl border-l-2 ${p >= 75 ? 'border-emerald-500' : 'border-red-500'}">
-                    <div class="flex justify-between items-start"><div class="max-w-[70%]"><p class="text-[9px] font-bold text-blue-500 uppercase">${s.code}</p><p class="font-bold text-xs truncate">${s.subject_name}</p></div><p class="font-black text-lg ${p >= 75 ? 'text-emerald-400' : 'text-red-500'}">${p}%</p></div>
-                    <div class="flex justify-between text-[9px] font-bold text-slate-500 mt-3 uppercase"><span>Attended: <span class="text-white">${s.attended}/${s.total_held}</span></span><span>Marks: <span class="text-white">${s.s1}|${s.s2}|${s.put}</span></span></div>
-                </div>`;
-            }).join('');
-        }
-
-        async function loadMatrix() {
-            try {
-                const res = await fetch(`${API}/student-attendance-history?roll_no=${roll}`);
-                const data = await res.json();
-                let headersHTML = `<th class="p-4 text-left border-r border-slate-800 sticky left-0 bg-slate-950 z-10">Date</th>`;
-                data.subjects.forEach(sub => { headersHTML += `<th class="p-4 px-6">${sub.code}</th>`; });
-                document.getElementById('matrixHeader').innerHTML = headersHTML;
-                const body = document.getElementById('matrixBody');
-                const dates = Object.keys(data.history).sort((a, b) => b.localeCompare(a));
-                if (dates.length === 0) { body.innerHTML = `<tr><td colspan="${data.subjects.length + 1}" class="p-8 text-[10px] text-slate-500 font-bold uppercase italic text-center">No attendance records found.</td></tr>`; return; }
-
-                let rowsHTML = "";
-                dates.forEach(date => {
-                    const attendedSubjects = data.history[date];
-                    let row = `<tr><td class="p-4 text-[10px] font-black bg-[#0f172a] text-emerald-400 border-r border-slate-800 sticky left-0 z-10 shadow-[2px_0_5px_rgba(0,0,0,0.2)]">${date}</td>`;
-                    data.subjects.forEach(sub => {
-                        if (attendedSubjects.includes(sub.id)) {
-                            row += `<td class="p-4 font-black text-emerald-500">P</td>`;
-                        } else if (data.approved_leaves && data.approved_leaves.includes(date)) {
-                            // MAGIC: If it's an approved leave date, show a yellow L!
-                            row += `<td class="p-4 font-black text-yellow-500">L</td>`;
-                        } else {
-                            row += `<td class="p-4 font-bold text-slate-600">--</td>`;
-                        }
-                    });
-                    row += `</tr>`; rowsHTML += row;
-                });
-                body.innerHTML = rowsHTML;
-            } catch (e) { }
-        }
+        // ... (Keep all your existing Student JS here, just replace loadTimetable) ...
 
         async function loadTimetable(branch, year, section) {
             const groupId = `${branch}-${year}-${section}`;
             try {
                 const res = await fetch(`${API}/get-timetable?group_id=${groupId}`);
                 const data = await res.json();
-                if (data.exists && data.grid_data) document.getElementById('ttDisplay').innerText = data.grid_data;
-                else document.getElementById('ttDisplay').innerText = "No timetable published yet for your class.";
-            } catch (e) { document.getElementById('ttDisplay').innerText = "Error loading schedule."; }
+                if (data.exists && data.grid_data) {
+                    try {
+                        const parsed = JSON.parse(data.grid_data);
+                        // Show Notice Banner if exists
+                        if (parsed.notice && parsed.notice.trim() !== "") {
+                            document.getElementById('noticeBanner').classList.remove('hidden');
+                            document.getElementById('noticeText').innerText = parsed.notice;
+                        } else { document.getElementById('noticeBanner').classList.add('hidden'); }
+
+                        // Render Grid
+                        if (parsed.grid) {
+                            let rows = "";
+                            ["Mon", "Tue", "Wed", "Thu", "Fri"].forEach(day => {
+                                rows += `<tr><td class="p-3 font-bold text-blue-400 bg-slate-950/50">${day}</td>`;
+                                parsed.grid[day].forEach(slot => { rows += `<td class="p-3 border-l border-slate-800/30">${slot || "-"}</td>`; });
+                                rows += `</tr>`;
+                            });
+                            document.getElementById('ttGridDisplay').innerHTML = rows;
+                        }
+                    } catch (e) { document.getElementById('ttGridDisplay').innerHTML = `<tr><td colspan="6" class="p-4 text-slate-400">${data.grid_data}</td></tr>`; } // Old data fallback
+                } else { document.getElementById('ttGridDisplay').innerHTML = `<tr><td colspan="6" class="p-8 text-slate-500 italic">No timetable published yet.</td></tr>`; }
+            } catch (e) { document.getElementById('ttGridDisplay').innerHTML = `<tr><td colspan="6">Error loading schedule.</td></tr>`; }
         }
 
-        async function submitLeave() {
-            const rawDate = document.getElementById('leaveDate').value;
-            const reason = document.getElementById('leaveReason').value;
-            if (!rawDate || !reason) return alert("Please select a date and enter a reason.");
-
-            // Format to match Matrix "DD-MM-YY"
-            const [yyyy, mm, dd] = rawDate.split('-');
-            const formattedDate = `${dd}-${mm}-${yyyy.slice(-2)}`;
-
-            await fetch(`${API}/request-leave?roll_no=${roll}&date_req=${formattedDate}&reason=${encodeURIComponent(reason)}`, { method: 'POST' });
-            alert("Leave Request Submitted to Director.");
-            document.getElementById('leaveDate').value = ""; document.getElementById('leaveReason').value = "";
-            loadLeaves();
-        }
-
-        async function loadLeaves() {
-            const res = await fetch(`${API}/student-leaves?roll_no=${roll}`);
-            const leaves = await res.json();
-            document.getElementById('leaveHistory').innerHTML = leaves.length ? leaves.map(l => {
-                let color = l.status === "Approved" ? "text-emerald-400 border-emerald-500/30 bg-emerald-900/10" : l.status === "Rejected" ? "text-red-400 border-red-500/30 bg-red-900/10" : "text-yellow-400 border-yellow-500/30 bg-yellow-900/10";
-                return `<div class="p-3 rounded-xl border ${color}"><div class="flex justify-between items-center"><p class="text-[10px] font-black tracking-widest uppercase">${l.date_req}</p><p class="text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-slate-950">${l.status}</p></div><p class="text-[10px] text-slate-300 italic mt-1">${l.reason}</p></div>`;
-            }).join('') : '<p class="text-[10px] text-slate-500 italic text-center py-4 uppercase tracking-widest">No past requests.</p>';
-        }
-
-        function startScanner() {
-            const scanner = new Html5Qrcode("reader");
-            scanner.start({ facingMode: "environment" }, { fps: 15, qrbox: 200 }, async (txt) => {
-                scanner.pause();
-                const [q, subId] = txt.split('|');
-                const res = await fetch(`${API}/mark-attendance?roll_no=${roll}&qr_content=${q}&subject_id=${subId}&device_id=${devID}`, { method: 'POST' });
-                if (res.ok) { document.getElementById('scanMsg').innerText = "SECURED!"; setTimeout(() => location.reload(), 1500); }
-                else { const e = await res.json(); alert(e.detail); scanner.resume(); }
-            }, () => { });
-        }
+        // Ensure you keep checkStatus(), loadMatrix(), switchTab(), startScanner() etc. from the previous code block exactly as they were!
     </script>
 </body>
 

@@ -68,7 +68,7 @@
             </div>
         </div>
 
-        <div class="flex flex-col md:flex-row gap-3 no-print w-full">
+        <div id="filterBar" class="flex flex-col md:flex-row gap-3 no-print w-full">
             <select id="fYear" onchange="filterData()"
                 class="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs font-bold uppercase outline-none focus:border-blue-500 text-white w-full md:w-1/6">
                 <option value="all">All Years</option>
@@ -125,15 +125,21 @@
         const key = localStorage.getItem('admin_key');
         let allStudents = [];
 
-        // THE FIX: FETCHES USING SECURE HEADERS
         async function loadAnalytics() {
             try {
                 if (!key) { window.location.href = "admin.html"; return; }
                 const headers = { "X-Admin-Key": key };
 
-                const res = await fetch(`${API}/all-students-analytics`, { headers });
-                if (!res.ok) { window.location.href = "admin.html"; return; }
+                // THE FIX: VERIFY THE HOD AND ADD A COOL BADGE TO THE UI
+                const vRes = await fetch(`${API}/admin-verify`, { headers });
+                if (!vRes.ok) throw new Error();
+                const vData = await vRes.json();
 
+                if (vData.branch !== "ALL") {
+                    document.getElementById('filterBar').insertAdjacentHTML('afterbegin', `<div class="bg-blue-900/30 text-blue-400 p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center border border-blue-500/50">${vData.branch} DEPT</div>`);
+                }
+
+                const res = await fetch(`${API}/all-students-analytics`, { headers });
                 allStudents = await res.json();
 
                 const codes = new Set();
@@ -151,7 +157,7 @@
                 document.getElementById('globalLoader').style.opacity = '0';
                 setTimeout(() => document.getElementById('globalLoader').remove(), 1000);
                 filterData();
-            } catch (e) { setTimeout(loadAnalytics, 2000); }
+            } catch (e) { window.location.href = "admin.html"; }
         }
 
         function filterData() {
@@ -207,7 +213,7 @@
             let csv = "Name,Roll Number,Branch,Year,Section,Overall Attendance %\n";
             allStudents.forEach(s => { let att = 0; let held = 0; s.erp.subjects.forEach(b => { att += b.attended; held += b.total_held; }); csv += `"${s.name}",${s.roll_no},${s.branch},${s.year},${s.section},${held > 0 ? Math.round((att / held) * 100) : 0}%\n`; });
             const a = document.createElement('a'); a.setAttribute('href', URL.createObjectURL(new Blob([csv], { type: 'text/csv' })));
-            a.setAttribute('download', `KNMIET_Master_Report_${new Date().toLocaleDateString()}.csv`); a.click();
+            a.setAttribute('download', `Department_Master_Report_${new Date().toLocaleDateString()}.csv`); a.click();
         }
     </script>
 </body>

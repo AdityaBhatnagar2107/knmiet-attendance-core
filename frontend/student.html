@@ -5,6 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Student App | KNMIET</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="icon.png">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('App Engine Active'))
+                    .catch(err => console.log('Engine Failed', err));
+            });
+        }
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -243,7 +258,7 @@
                 const l = document.getElementById('globalLoader'); if (l) l.remove();
                 if (data.status === "Approved") {
                     document.getElementById('approvedView').classList.remove('hidden');
-                    document.getElementById('bottomNav').classList.remove('hidden'); // Show Nav
+                    document.getElementById('bottomNav').classList.remove('hidden');
                     document.getElementById('sName').innerText = data.name;
                     document.getElementById('sBranch').innerText = `${data.branch} - YR ${data.year} [SEC ${data.section}]`;
                     document.getElementById('totalLecs').innerText = data.total_lectures;

@@ -21,61 +21,25 @@
 
         .custom-scroll::-webkit-scrollbar {
             width: 6px;
+            height: 6px;
         }
 
         .custom-scroll::-webkit-scrollbar-thumb {
             background: #334155;
             border-radius: 10px;
         }
-
-        .aurora-bg {
-            position: fixed;
-            top: -50%;
-            left: -20%;
-            width: 70%;
-            height: 70%;
-            background: radial-gradient(circle, rgba(37, 99, 235, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
-            filter: blur(60px);
-            z-index: -1;
-            pointer-events: none;
-        }
-
-        .aurora-bg-2 {
-            position: fixed;
-            bottom: -50%;
-            right: -20%;
-            width: 70%;
-            height: 70%;
-            background: radial-gradient(circle, rgba(147, 51, 234, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
-            filter: blur(60px);
-            z-index: -1;
-            pointer-events: none;
-        }
     </style>
 </head>
 
-<body class="p-6 relative" onload="wakeServer()">
-    <div class="aurora-bg"></div>
-    <div class="aurora-bg-2"></div>
-
-    <div id="globalLoader"
-        class="fixed inset-0 bg-[#020617] z-[9999] flex flex-col items-center justify-center transition-opacity duration-1000">
-        <div class="bg-white p-4 rounded-3xl mb-8 animate-pulse shadow-[0_0_30px_rgba(255,255,255,0.1)]"><img
-                src="knmiet-logo1494x375.webp" class="h-10 object-contain" alt="Logo"
-                onerror="this.src='knmiet-logo.webp'"></div>
-        <div class="w-12 h-12 border-4 border-slate-800 border-t-blue-500 rounded-full animate-spin mb-6"></div>
-        <h2 class="text-lg font-black tracking-widest uppercase">Securing Access</h2>
-    </div>
+<body class="p-6" onload="wakeServer()">
 
     <div id="loginGate"
-        class="hidden max-w-md mx-auto mt-16 p-10 glass rounded-[2.5rem] text-center border-t-4 border-blue-600 shadow-2xl">
-        <div class="bg-white p-3 rounded-2xl inline-block shadow-lg mb-6"><img src="knmiet-logo1494x375.webp"
-                class="h-8 object-contain" alt="Logo" onerror="this.src='knmiet-logo.webp'"></div>
+        class="hidden max-w-md mx-auto mt-16 p-10 glass rounded-[2.5rem] text-center border-t-4 border-blue-600">
         <h2 class="text-2xl font-bold text-blue-400 mb-6">Admin Login</h2>
         <input type="password" id="adminPass" placeholder="Enter Secure Passkey"
             class="w-full bg-slate-900 border border-slate-700 p-4 rounded-xl mb-4 outline-none text-center text-white">
         <button onclick="verify()"
-            class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold uppercase tracking-widest text-white transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)]">Unlock
+            class="w-full bg-blue-600 hover:bg-blue-500 py-4 rounded-xl font-bold uppercase tracking-widest text-white transition-all">Unlock
             System</button>
     </div>
 
@@ -88,7 +52,7 @@
             </div>
             <div class="flex gap-3">
                 <a href="analytics.html"
-                    class="bg-blue-900/20 px-6 py-3 rounded-2xl text-blue-400 border border-blue-900/50 text-[10px] font-black uppercase hover:bg-blue-600 hover:text-white transition-all text-center flex items-center justify-center">Analytics</a>
+                    class="bg-blue-900/20 px-6 py-3 rounded-2xl text-blue-400 border border-blue-900/50 text-[10px] font-black uppercase hover:bg-blue-600 hover:text-white transition-all">Analytics</a>
                 <button onclick="logoutAdmin()"
                     class="bg-red-900/20 px-6 py-3 rounded-2xl text-red-400 border border-red-900/50 text-[10px] font-black uppercase hover:bg-red-600 hover:text-white transition-all">Lock</button>
             </div>
@@ -122,11 +86,11 @@
                 <h3 class="text-xs font-bold text-slate-400 uppercase mb-4 tracking-widest">Authorize Faculty</h3>
                 <div class="space-y-4">
                     <input type="text" id="tName" placeholder="Full Name"
-                        class="w-full bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white outline-none focus:border-emerald-500 transition-all">
+                        class="w-full bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white outline-none">
                     <input type="email" id="tEmail" placeholder="Email Address"
-                        class="w-full bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white outline-none focus:border-emerald-500 transition-all">
+                        class="w-full bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white outline-none">
                     <input type="text" id="tPin" placeholder="Assign 4-Digit PIN" maxlength="4"
-                        class="w-full bg-slate-900 p-3 rounded-xl border border-emerald-500/50 text-sm text-emerald-400 font-bold font-mono tracking-[0.5em] text-center outline-none focus:border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.1)]">
+                        class="w-full bg-slate-900 p-3 rounded-xl border border-emerald-500/50 text-sm text-emerald-400 font-bold font-mono tracking-[0.5em] text-center outline-none">
                     <div class="flex gap-2">
                         <select id="tRole"
                             class="w-1/2 bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white outline-none">
@@ -144,7 +108,7 @@
                         </select>
                     </div>
                     <button onclick="addTeacher()"
-                        class="w-full bg-emerald-600 hover:bg-emerald-500 transition-all py-3.5 rounded-xl font-bold text-white mt-2 shadow-[0_0_15px_rgba(16,185,129,0.3)]">CREATE
+                        class="w-full bg-emerald-600 hover:bg-emerald-500 transition-all py-3.5 rounded-xl font-bold text-white mt-2">CREATE
                         FACULTY PROFILE</button>
                 </div>
             </div>
@@ -193,19 +157,18 @@
                 </div>
                 <div class="flex gap-3 pt-4 mt-4 border-t border-slate-800">
                     <button onclick="addSubjectRow()"
-                        class="w-1/3 bg-slate-800 py-3 rounded-xl font-black text-[10px] text-white uppercase transition-all hover:bg-slate-700">+
+                        class="w-1/3 bg-slate-800 py-3 rounded-xl font-black text-[10px] text-white uppercase hover:bg-slate-700">+
                         Add Row</button>
                     <button onclick="assignMultipleSubjects()"
-                        class="w-2/3 bg-purple-600 py-3 rounded-xl font-black text-[10px] text-white uppercase tracking-widest transition-all hover:bg-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]">Link
+                        class="w-2/3 bg-purple-600 py-3 rounded-xl font-black text-[10px] text-white uppercase tracking-widest hover:bg-purple-500">Link
                         Subjects</button>
                 </div>
             </div>
         </div>
 
         <div class="glass p-8 rounded-3xl border-l-4 border-cyan-500 mt-8 shadow-xl">
-            <h3
-                class="text-sm font-black text-cyan-400 uppercase mb-6 tracking-widest border-b border-slate-800 pb-2 flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-cyan-500 animate-pulse"></span> Smart Timetable Engine</h3>
+            <h3 class="text-sm font-black text-cyan-400 uppercase mb-6 tracking-widest border-b border-slate-800 pb-2">
+                Smart Timetable Engine (8 Lectures)</h3>
             <div class="flex gap-4 mb-6">
                 <select id="ttBranch"
                     class="w-1/4 bg-slate-900 p-3 rounded-xl border border-slate-700 text-sm text-white font-bold outline-none">
@@ -231,26 +194,26 @@
                     <option value="D">Sec D</option>
                 </select>
                 <button onclick="loadTimetable()"
-                    class="w-1/4 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-bold text-white transition-all text-[10px] uppercase tracking-widest shadow-lg border border-slate-600">Load
+                    class="w-1/4 bg-slate-800 hover:bg-slate-700 py-3 rounded-xl font-bold text-white transition-all text-[10px] uppercase tracking-widest">Load
                     Existing</button>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="bg-slate-900/50 p-6 rounded-2xl border border-slate-700">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div
+                    class="lg:col-span-2 bg-slate-900/50 p-6 rounded-2xl border border-slate-700 overflow-x-auto custom-scroll">
                     <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">Master Grid Setup
                         (Type Subject/Teacher)</p>
-                    <div id="gridBuilder" class="space-y-2"></div>
+                    <div id="gridBuilder" class="min-w-max space-y-2"></div>
                 </div>
                 <div class="bg-slate-900/50 p-6 rounded-2xl border border-red-900/30 flex flex-col">
-                    <p class="text-[10px] text-red-400 font-bold uppercase tracking-widest mb-4">Daily Announcements /
-                        Proxy Classes</p>
-                    <textarea id="ttProxy"
-                        placeholder="Example: Mr. Sharma is absent today. Engineering Mathematics is shifted to 2:00 PM in Room 304."
-                        class="w-full bg-slate-950 border border-red-900/50 p-4 rounded-xl text-sm outline-none text-white focus:border-red-500 h-full custom-scroll leading-relaxed resize-none"></textarea>
+                    <p class="text-[10px] text-red-400 font-bold uppercase tracking-widest mb-4">Urgent Notice / Proxy
+                        Classes</p>
+                    <textarea id="ttProxy" placeholder="Example: Mr. Sharma is absent. Physics is at 2:00 PM."
+                        class="w-full bg-slate-950 border border-red-900/50 p-4 rounded-xl text-sm outline-none text-white focus:border-red-500 h-full custom-scroll resize-none"></textarea>
                 </div>
             </div>
             <button onclick="saveTimetable()"
-                class="w-full bg-cyan-600 hover:bg-cyan-500 py-5 rounded-xl font-black text-xs text-white uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(6,182,212,0.4)] mt-6">Deploy
+                class="w-full bg-cyan-600 hover:bg-cyan-500 py-5 rounded-xl font-black text-xs text-white uppercase tracking-widest transition-all mt-6">Deploy
                 Master Schedule to Portals</button>
         </div>
     </div>
@@ -259,12 +222,12 @@
         let currentKey = ""; const API = "https://knmiet-attendance-core.onrender.com";
         function getHeaders() { return { "X-Admin-Key": currentKey }; }
 
-        // Generate the 5x5 Grid UI dynamically
+        // GENERATING 8 LECTURE SLOTS DYNAMICALLY
         const days = ["Mon", "Tue", "Wed", "Thu", "Fri"];
-        let gridHTML = '<div class="grid grid-cols-6 gap-2 text-[9px] font-black text-slate-500 uppercase tracking-widest text-center mb-2"><div>Day</div><div>Slot 1</div><div>Slot 2</div><div>Slot 3</div><div>Slot 4</div><div>Slot 5</div></div>';
+        let gridHTML = '<div class="grid grid-cols-9 gap-2 text-[9px] font-black text-slate-500 uppercase tracking-widest text-center mb-2"><div>Day</div><div>L1</div><div>L2</div><div>L3</div><div>L4</div><div>L5</div><div>L6</div><div>L7</div><div>L8</div></div>';
         days.forEach(day => {
-            gridHTML += `<div class="grid grid-cols-6 gap-2 mb-2"><div class="flex items-center justify-center font-bold text-xs text-blue-400 bg-slate-950 rounded-lg border border-slate-800">${day}</div>`;
-            for (let i = 0; i < 5; i++) gridHTML += `<input type="text" id="g_${day}_${i}" class="bg-slate-950 border border-slate-800 p-2 text-center text-[10px] rounded-lg text-white outline-none focus:border-cyan-500" placeholder="-">`;
+            gridHTML += `<div class="grid grid-cols-9 gap-2 mb-2"><div class="flex items-center justify-center font-bold text-xs text-blue-400 bg-slate-950 rounded-lg border border-slate-800 p-2 w-16">${day}</div>`;
+            for (let i = 0; i < 8; i++) gridHTML += `<input type="text" id="g_${day}_${i}" class="bg-slate-950 border border-slate-800 p-2 text-center text-[10px] rounded-lg text-white outline-none focus:border-cyan-500 w-24" placeholder="-">`;
             gridHTML += `</div>`;
         });
         document.getElementById('gridBuilder').innerHTML = gridHTML;
@@ -272,8 +235,7 @@
         async function wakeServer() {
             currentKey = localStorage.getItem('admin_key');
             try {
-                await fetch(`${API}/`); document.getElementById('globalLoader').style.opacity = '0';
-                setTimeout(() => document.getElementById('globalLoader').remove(), 1000);
+                await fetch(`${API}/`);
                 if (currentKey) {
                     const res = await fetch(`${API}/admin-verify`, { headers: getHeaders() });
                     if (res.ok) { const data = await res.json(); localStorage.setItem('admin_branch', data.branch); loadData(); }
@@ -283,15 +245,7 @@
         }
 
         function logoutAdmin() { localStorage.removeItem('admin_key'); localStorage.removeItem('admin_branch'); location.reload(); }
-
-        async function verify() {
-            currentKey = document.getElementById('adminPass').value.trim();
-            try {
-                const res = await fetch(`${API}/admin-verify`, { headers: getHeaders() });
-                if (!res.ok) throw new Error();
-                const data = await res.json(); localStorage.setItem('admin_key', currentKey); localStorage.setItem('admin_branch', data.branch); loadData();
-            } catch (e) { alert("Invalid Passkey."); }
-        }
+        async function verify() { currentKey = document.getElementById('adminPass').value.trim(); try { const res = await fetch(`${API}/admin-verify`, { headers: getHeaders() }); if (!res.ok) throw new Error(); const data = await res.json(); localStorage.setItem('admin_key', currentKey); localStorage.setItem('admin_branch', data.branch); loadData(); } catch (e) { alert("Invalid Passkey."); } }
 
         async function loadData() {
             try {
@@ -305,17 +259,18 @@
                 const [sRes, tRes, lRes] = await Promise.all([fetch(`${API}/pending-students`, { headers: getHeaders() }), fetch(`${API}/get-teachers`), fetch(`${API}/pending-leaves`, { headers: getHeaders() })]);
                 const students = await sRes.json(); const teachers = await tRes.json(); const leaves = await lRes.json();
                 document.getElementById('loginGate').classList.add('hidden'); document.getElementById('dashboard').classList.remove('hidden');
-                document.getElementById('pendingList').innerHTML = students.length ? students.map(s => `<div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700"><p class="font-bold text-sm text-white">${s.name} <span class="text-[9px] text-blue-400 bg-blue-900/30 px-2 rounded">${s.branch}-${s.year} [${s.section}]</span></p><p class="text-[10px] text-slate-500 mb-3 font-mono">Roll: ${s.roll_no}</p><div class="flex gap-2"><button onclick="updateStatus('${s.roll_no}', 'Approved')" class="w-2/3 bg-emerald-600 hover:bg-emerald-500 py-2 rounded-lg text-[10px] font-black uppercase text-white transition-all">Verify</button><button onclick="updateStatus('${s.roll_no}', 'Rejected')" class="w-1/3 bg-slate-800 hover:bg-red-600 border border-slate-700 py-2 rounded-lg text-[10px] font-black uppercase text-slate-400 hover:text-white transition-all">Reject</button></div></div>`).join('') : '<p class="text-[10px] text-slate-500 italic text-center py-4 uppercase tracking-widest font-bold">No pending verifications.</p>';
-                document.getElementById('leaveList').innerHTML = leaves.length ? leaves.map(l => `<div class="bg-slate-900/60 p-4 rounded-xl border border-purple-500/30"><p class="font-bold text-sm text-white">${l.name} <span class="text-[9px] text-purple-400 bg-purple-900/30 px-2 rounded">${l.date_req}</span></p><p class="text-[10px] text-slate-400 italic mb-3 mt-1 break-words">"${l.reason}"</p><div class="flex gap-2"><button onclick="updateLeave(${l.id}, 'Approved')" class="w-1/2 bg-emerald-600 hover:bg-emerald-500 py-2 rounded-lg text-[10px] font-black uppercase text-white transition-all">Approve</button><button onclick="updateLeave(${l.id}, 'Rejected')" class="w-1/2 bg-slate-800 hover:bg-red-600 border border-slate-700 py-2 rounded-lg text-[10px] font-black uppercase text-slate-400 hover:text-white transition-all">Reject</button></div></div>`).join('') : '<p class="text-[10px] text-slate-500 italic text-center py-4 uppercase tracking-widest font-bold">No pending leaves.</p>';
+                document.getElementById('pendingList').innerHTML = students.length ? students.map(s => `<div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700"><p class="font-bold text-sm text-white">${s.name} <span class="text-[9px] text-blue-400 bg-blue-900/30 px-2 rounded">${s.branch}-${s.year} [${s.section}]</span></p><p class="text-[10px] text-slate-500 mb-3 font-mono">Roll: ${s.roll_no}</p><div class="flex gap-2"><button onclick="updateStatus('${s.roll_no}', 'Approved')" class="w-2/3 bg-emerald-600 py-2 rounded-lg text-[10px] font-black uppercase text-white">Verify</button><button onclick="updateStatus('${s.roll_no}', 'Rejected')" class="w-1/3 bg-slate-800 border border-slate-700 py-2 rounded-lg text-[10px] font-black uppercase text-slate-400">Reject</button></div></div>`).join('') : '<p class="text-[10px] text-slate-500 py-4 uppercase">No verifications.</p>';
+                document.getElementById('leaveList').innerHTML = leaves.length ? leaves.map(l => `<div class="bg-slate-900/60 p-4 rounded-xl border border-purple-500/30"><p class="font-bold text-sm text-white">${l.name} <span class="text-[9px] text-purple-400 bg-purple-900/30 px-2 rounded">${l.date_req}</span></p><p class="text-[10px] text-slate-400 italic mb-3 mt-1 break-words">"${l.reason}"</p><div class="flex gap-2"><button onclick="updateLeave(${l.id}, 'Approved')" class="w-1/2 bg-emerald-600 py-2 rounded-lg text-[10px] font-black uppercase text-white">Approve</button><button onclick="updateLeave(${l.id}, 'Rejected')" class="w-1/2 bg-slate-800 py-2 rounded-lg text-[10px] font-black uppercase text-slate-400">Reject</button></div></div>`).join('') : '<p class="text-[10px] text-slate-500 py-4 uppercase">No leaves.</p>';
                 document.getElementById('sTeacher').innerHTML = teachers.map(t => `<option value="${t.id}">${t.name} (${t.role})</option>`).join('');
-            } catch (e) { alert("Session Expired."); logoutAdmin(); }
+            } catch (e) { logoutAdmin(); }
         }
+
         async function updateLeave(id, status) { await fetch(`${API}/update-leave-status?leave_id=${id}&status=${status}`, { method: 'POST', headers: getHeaders() }); loadData(); }
-        async function uploadRoster() { const fileInput = document.getElementById('csvFile'); const msg = document.getElementById('uploadMsg'); if (fileInput.files.length === 0) { msg.innerText = "PLEASE SELECT CSV"; return; } const formData = new FormData(); formData.append("file", fileInput.files[0]); msg.innerText = "UPLOADING..."; try { const res = await fetch(`${API}/upload-roster`, { method: 'POST', body: formData, headers: getHeaders() }); if (res.ok) { msg.innerText = "UPLOADED"; fileInput.value = ""; loadData(); } else msg.innerText = "FAILED"; } catch (e) { msg.innerText = "ERROR"; } }
+        async function uploadRoster() { const fileInput = document.getElementById('csvFile'); const msg = document.getElementById('uploadMsg'); if (fileInput.files.length === 0) return; const formData = new FormData(); formData.append("file", fileInput.files[0]); try { const res = await fetch(`${API}/upload-roster`, { method: 'POST', body: formData, headers: getHeaders() }); if (res.ok) { msg.innerText = "UPLOADED"; fileInput.value = ""; loadData(); } } catch (e) { } }
         async function updateStatus(roll, status) { await fetch(`${API}/update-student-status?roll_no=${roll}&status=${status}`, { method: 'POST', headers: getHeaders() }); loadData(); }
-        function addSubjectRow() { const row = document.createElement('div'); row.className = "subject-entry bg-slate-950 p-4 rounded-xl border border-slate-700 space-y-3 relative hover:border-purple-500/50 transition-all"; row.innerHTML = `<button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 text-[10px] font-bold">✕</button><div class="flex gap-2"><input type="text" placeholder="Sub Name" class="sName w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs text-white outline-none"><input type="text" placeholder="Code" class="sCode w-1/2 bg-slate-900 p-2.5 rounded-lg border border-slate-700 text-xs font-mono text-white outline-none"></div><div class="flex gap-2"><select class="sBranch w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-white font-bold outline-none"><option value="ALL">ALL</option><option value="CSE">CSE</option><option value="IT">IT</option><option value="AI">AI</option><option value="ECE">ECE</option><option value="EE">EE</option><option value="CHE">CHE</option></select><select class="sYear w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-white font-bold outline-none"><option value="1">1st Yr</option><option value="2">2nd Yr</option><option value="3">3rd Yr</option><option value="4">4th Yr</option></select><select class="sSection w-1/3 bg-slate-900 p-2 rounded-lg border border-slate-700 text-[10px] text-emerald-400 font-bold outline-none"><option value="A">Sec A</option><option value="B">Sec B</option><option value="C">Sec C</option><option value="D">Sec D</option></select></div>`; document.getElementById('subjectRows').appendChild(row); const branch = localStorage.getItem('admin_branch'); if (branch !== "ALL") { row.querySelector('.sBranch').value = branch; row.querySelector('.sBranch').disabled = true; } }
-        async function assignMultipleSubjects() { const tid = document.getElementById('sTeacher').value; const entries = document.querySelectorAll('.subject-entry'); for (let entry of entries) { const name = entry.querySelector('.sName').value, code = entry.querySelector('.sCode').value, branch = entry.querySelector('.sBranch').value, year = entry.querySelector('.sYear').value, section = entry.querySelector('.sSection').value; if (name && code) await fetch(`${API}/assign-subject?name=${encodeURIComponent(name)}&code=${encodeURIComponent(code)}&branch=${branch}&year=${year}&section=${section}&teacher_id=${tid}`, { method: 'POST', headers: getHeaders() }); } alert("Curriculum Linked Successfully!"); loadData(); }
-        async function addTeacher() { const n = document.getElementById('tName').value, e = document.getElementById('tEmail').value, p = document.getElementById('tPin').value, r = document.getElementById('tRole').value, d = document.getElementById('tDept').value; if (!n || !e || !p || p.length < 4) return alert("Fill all fields."); await fetch(`${API}/add-teacher?name=${encodeURIComponent(n)}&email=${encodeURIComponent(e)}&pin=${encodeURIComponent(p)}&role=${r}&department=${d}`, { method: 'POST', headers: getHeaders() }); alert(`Staff Registered! Give them PIN: ${p}`); loadData(); }
+        function addSubjectRow() { const row = document.createElement('div'); row.className = "subject-entry bg-slate-950 p-4 rounded-xl border border-slate-700 space-y-3 relative"; row.innerHTML = `<button onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-red-500 text-[10px] font-bold">✕</button><div class="flex gap-2"><input type="text" placeholder="Sub Name" class="sName w-1/2 bg-slate-900 p-2.5 rounded-lg text-xs text-white"><input type="text" placeholder="Code" class="sCode w-1/2 bg-slate-900 p-2.5 rounded-lg text-xs text-white"></div><div class="flex gap-2"><select class="sBranch w-1/3 bg-slate-900 p-2 rounded-lg text-[10px] text-white"><option value="ALL">ALL</option><option value="CSE">CSE</option><option value="IT">IT</option><option value="AI">AI</option><option value="ECE">ECE</option><option value="EE">EE</option><option value="CHE">CHE</option></select><select class="sYear w-1/3 bg-slate-900 p-2 rounded-lg text-[10px] text-white"><option value="1">1st Yr</option><option value="2">2nd Yr</option><option value="3">3rd Yr</option><option value="4">4th Yr</option></select><select class="sSection w-1/3 bg-slate-900 p-2 rounded-lg text-[10px] text-emerald-400"><option value="A">Sec A</option><option value="B">Sec B</option><option value="C">Sec C</option><option value="D">Sec D</option></select></div>`; document.getElementById('subjectRows').appendChild(row); const branch = localStorage.getItem('admin_branch'); if (branch !== "ALL") { row.querySelector('.sBranch').value = branch; row.querySelector('.sBranch').disabled = true; } }
+        async function assignMultipleSubjects() { const tid = document.getElementById('sTeacher').value; const entries = document.querySelectorAll('.subject-entry'); for (let entry of entries) { const name = entry.querySelector('.sName').value, code = entry.querySelector('.sCode').value, branch = entry.querySelector('.sBranch').value, year = entry.querySelector('.sYear').value, section = entry.querySelector('.sSection').value; if (name && code) await fetch(`${API}/assign-subject?name=${encodeURIComponent(name)}&code=${encodeURIComponent(code)}&branch=${branch}&year=${year}&section=${section}&teacher_id=${tid}`, { method: 'POST', headers: getHeaders() }); } alert("Linked!"); loadData(); }
+        async function addTeacher() { const n = document.getElementById('tName').value, e = document.getElementById('tEmail').value, p = document.getElementById('tPin').value, r = document.getElementById('tRole').value, d = document.getElementById('tDept').value; if (!n || !e || !p || p.length < 4) return; await fetch(`${API}/add-teacher?name=${encodeURIComponent(n)}&email=${encodeURIComponent(e)}&pin=${encodeURIComponent(p)}&role=${r}&department=${d}`, { method: 'POST', headers: getHeaders() }); alert(`Registered! PIN: ${p}`); loadData(); }
 
         async function loadTimetable() {
             const groupId = `${document.getElementById('ttBranch').value}-${document.getElementById('ttYear').value}-${document.getElementById('ttSection').value}`;
@@ -325,18 +280,17 @@
                 try {
                     const parsed = JSON.parse(data.grid_data);
                     document.getElementById('ttProxy').value = parsed.notice || "";
-                    if (parsed.grid) {
-                        days.forEach(day => { for (let i = 0; i < 5; i++) { document.getElementById(`g_${day}_${i}`).value = parsed.grid[day][i] || ""; } });
-                    }
-                } catch (e) { document.getElementById('ttProxy').value = data.grid_data; } // Fallback for old data
-            } else { document.getElementById('ttProxy').value = ""; days.forEach(day => { for (let i = 0; i < 5; i++) { document.getElementById(`g_${day}_${i}`).value = ""; } }); }
+                    if (parsed.grid) { days.forEach(day => { for (let i = 0; i < 8; i++) { document.getElementById(`g_${day}_${i}`).value = parsed.grid[day][i] || ""; } }); }
+                } catch (e) { document.getElementById('ttProxy').value = data.grid_data; }
+            } else { document.getElementById('ttProxy').value = ""; days.forEach(day => { for (let i = 0; i < 8; i++) { document.getElementById(`g_${day}_${i}`).value = ""; } }); }
         }
 
         async function saveTimetable() {
             const groupId = `${document.getElementById('ttBranch').value}-${document.getElementById('ttYear').value}-${document.getElementById('ttSection').value}`;
             const notice = document.getElementById('ttProxy').value;
-            let grid = {};
-            days.forEach(day => { grid[day] = []; for (let i = 0; i < 5; i++) { grid[day].push(document.getElementById(`g_${day}_${i}`).value); } });
+            let grid = {}; days.forEach(day => { grid[day] = []; for (let i = 0; i < 8; i++) { grid[day].push(document.getElementById(`g_${day}_${i}`).value); } });
+
+            // STRICT JSON STRINGIFY TO FIX NOTICE BUG
             const payload = JSON.stringify({ notice: notice, grid: grid });
             const res = await fetch(`${API}/save-timetable?group_id=${groupId}&grid_data=${encodeURIComponent(payload)}`, { method: 'POST', headers: getHeaders() });
             if (res.ok) alert("Timetable & Notices Deployed Successfully!");

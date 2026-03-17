@@ -4,8 +4,13 @@ from sqlalchemy.orm import sessionmaker
 
 # Your verified working password
 SQLALCHEMY_DATABASE_URL="postgresql://knmiet_db_user:LPsYZcZX70OUqScLHufnTZRjAH7H5W9A@dpg-d6e8h27pm1nc73aasstg-a/knmiet_db"
+#SQLALCHEMY_DATABASE_URL = "sqlite:///./attendance.db"
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
+#engine = create_engine(SQLALCHEMY_DATABASE_URL)
+engine = create_engine(
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()

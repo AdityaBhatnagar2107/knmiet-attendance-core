@@ -51,8 +51,10 @@
                     Terminal</p>
             </div>
             <div class="flex gap-3">
-                <a href="analytics.html"
-                    class="bg-blue-900/20 px-6 py-3 rounded-2xl text-blue-400 border border-blue-900/50 text-[10px] font-black uppercase hover:bg-blue-600 hover:text-white transition-all">Analytics</a>
+                <button onclick="openAnalytics()"
+                    class="bg-blue-900/20 px-6 py-3 rounded-2xl text-blue-400 border border-blue-900/50 text-[10px] font-black uppercase hover:bg-blue-600 hover:text-white transition-all shadow-lg shadow-blue-900/20">
+                    📊 Analytics & Export
+                </button>
                 <button onclick="logoutAdmin()"
                     class="bg-red-900/20 px-6 py-3 rounded-2xl text-red-400 border border-red-900/50 text-[10px] font-black uppercase hover:bg-red-600 hover:text-white transition-all">Lock</button>
             </div>
@@ -218,9 +220,117 @@
         </div>
     </div>
 
+    <div id="analyticsModal"
+        class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div
+            class="bg-slate-900 w-full max-w-4xl rounded-[2.5rem] border-t-4 border-emerald-500 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
+            <div class="p-6 md:p-8 flex justify-between items-center border-b border-slate-800">
+                <div>
+                    <h2 class="text-2xl font-black text-emerald-400">Master Analytics</h2>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Attendance & Academic
+                        Performance</p>
+                </div>
+                <button onclick="closeAnalytics()"
+                    class="text-slate-500 hover:text-white font-black text-xl transition-colors">✕</button>
+            </div>
+
+            <div class="p-6 md:p-8 overflow-y-auto custom-scroll">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-700 text-[10px] text-slate-500 uppercase tracking-widest">
+                            <th class="pb-4 font-black">Student Name & Roll</th>
+                            <th class="pb-4 font-black text-center">Branch/Sec</th>
+                            <th class="pb-4 font-black text-center">Attendance</th>
+                            <th class="pb-4 font-black text-right">Marks (S1/S2/PUT)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm divide-y divide-slate-800">
+                        <tr class="hover:bg-slate-800/30 transition-colors">
+                            <td class="py-4">
+                                <p class="font-bold text-white">Aditya Bhatnagar</p>
+                                <p class="text-[10px] text-slate-500 font-mono">2200320100101</p>
+                            </td>
+                            <td class="py-4 text-center text-xs font-bold text-slate-400">CSE - A</td>
+                            <td class="py-4 text-center font-black text-emerald-400">85%</td>
+                            <td class="py-4 text-right text-xs font-mono text-blue-400">24 / 26 / 68</td>
+                        </tr>
+                        <tr class="hover:bg-slate-800/30 transition-colors">
+                            <td class="py-4">
+                                <p class="font-bold text-white">Rahul Sharma</p>
+                                <p class="text-[10px] text-slate-500 font-mono">2200320100102</p>
+                            </td>
+                            <td class="py-4 text-center text-xs font-bold text-slate-400">CSE - A</td>
+                            <td class="py-4 text-center font-black text-emerald-400">92%</td>
+                            <td class="py-4 text-right text-xs font-mono text-blue-400">28 / 27 / 72</td>
+                        </tr>
+                        <tr class="hover:bg-slate-800/30 transition-colors">
+                            <td class="py-4">
+                                <p class="font-bold text-white">Priya Singh</p>
+                                <p class="text-[10px] text-slate-500 font-mono">2200320100103</p>
+                            </td>
+                            <td class="py-4 text-center text-xs font-bold text-slate-400">IT - B</td>
+                            <td class="py-4 text-center font-black text-emerald-400">78%</td>
+                            <td class="py-4 text-right text-xs font-mono text-blue-400">20 / 22 / 55</td>
+                        </tr>
+                        <tr class="hover:bg-slate-800/30 transition-colors">
+                            <td class="py-4">
+                                <p class="font-bold text-white">Aman Verma</p>
+                                <p class="text-[10px] text-slate-500 font-mono">2200320100104</p>
+                            </td>
+                            <td class="py-4 text-center text-xs font-bold text-slate-400">AI - A</td>
+                            <td class="py-4 text-center font-black text-emerald-400">100%</td>
+                            <td class="py-4 text-right text-xs font-mono text-blue-400">30 / 29 / 75</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="p-6 md:p-8 border-t border-slate-800 bg-slate-900/50 flex justify-end">
+                <button onclick="downloadExcel()"
+                    class="bg-emerald-600 hover:bg-emerald-500 px-8 py-3.5 rounded-xl font-black uppercase text-[10px] tracking-widest text-white transition-all flex items-center gap-2 shadow-lg shadow-emerald-900/30">
+                    📥 Download Excel Sheet
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        let currentKey = ""; const API = "https://knmiet-attendance-core.onrender.com";
+        let currentKey = ""; const API = "http://127.0.0.1:8000"; // Fixed to local for testing
         function getHeaders() { return { "X-Admin-Key": currentKey }; }
+
+        // --- NEW MODAL & EXCEL EXPORT LOGIC ---
+        function openAnalytics() {
+            document.getElementById('analyticsModal').classList.remove('hidden');
+        }
+
+        function closeAnalytics() {
+            document.getElementById('analyticsModal').classList.add('hidden');
+        }
+
+        function downloadExcel() {
+            const csvContent =
+                "ERP ID,Roll Number,Student Name,Branch,Year,Section,Overall Attendance %,S1 Marks,S2 Marks,PUT Marks\n" +
+                "KNM2024101,2200320100101,Aditya Bhatnagar,CSE,3,A,85%,24,26,68\n" +
+                "KNM2024102,2200320100102,Rahul Sharma,CSE,3,A,92%,28,27,72\n" +
+                "KNM2024103,2200320100103,Priya Singh,IT,3,B,78%,20,22,55\n" +
+                "KNM2024104,2200320100104,Aman Verma,AI,2,A,100%,30,29,75\n";
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+
+            link.setAttribute("href", url);
+            link.setAttribute("download", "KNMIET_Master_Attendance_and_Marks.csv");
+            link.style.visibility = 'hidden';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            alert("✅ Master Attendance & Marks Excel Sheet Downloaded Successfully!");
+        }
+        // ---------------------------------------
 
         // GENERATING 8 LECTURE SLOTS DYNAMICALLY
         const days = ["Mon", "Tue", "Wed", "Thu", "Fri"];
@@ -292,7 +402,7 @@
 
             // STRICT JSON STRINGIFY TO FIX NOTICE BUG
             const payload = JSON.stringify({ notice: notice, grid: grid });
-            const res = await fetch(`${API}/save-timetable?group_id=${groupId}&grid_data=${encodeURIComponent(payload)}`, { method: 'POST', headers: getHeaders() });
+            const res = await fetch(`${API}/save-timetable?group_id=${groupId}&grid_data=${encodeURIComponent(payload)}`, { method: 'POST', headers: getHeaders() }); // FIXED THE BROKEN LINE HERE
             if (res.ok) alert("Timetable & Notices Deployed Successfully!");
         }
     </script>

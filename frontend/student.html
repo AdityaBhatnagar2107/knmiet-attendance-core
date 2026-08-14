@@ -13,8 +13,13 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('App Engine Active'))
+                // Notice we are now pointing to sw-v2.js
+                navigator.serviceWorker.register('sw-v2.js?v=2')
+                    .then(reg => {
+                        console.log('New Engine Active');
+                        // If a new worker is found, reload the page automatically
+                        reg.onupdatefound = () => { location.reload(); };
+                    })
                     .catch(err => console.log('Engine Failed', err));
             });
         }
